@@ -1,0 +1,239 @@
+/* ===== გვერდების საერთო ელემენტები ===== */
+.page-pad { padding: 0 var(--page-pad); }
+.muted { color: var(--text-2); font-size: 12px; }
+.rule { border: 0; height: 1px; background: var(--bg-raised); margin: 0; }
+.section { padding: 48px var(--page-pad) 40px; }
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
+.section-head h2 { font-size: 24px; font-weight: 800; }
+.section-tools { display: flex; align-items: center; gap: 22px; }
+.see-all { color: var(--red); font-weight: 600; font-size: 14px; }
+.see-all:hover { text-decoration: underline; }
+.arrows { display: flex; gap: 8px; }
+.round-btn { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: var(--tint-white); transition: background .15s; }
+.round-btn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.round-btn:disabled { opacity: .3; }
+.round-btn[hidden] { display: none; }
+.round-lg { width: 54px; height: 54px; background: rgba(7,12,28,.35); backdrop-filter: blur(6px); }
+
+/* ჰორიზონტალური გადახვევა დამალული სქროლბარით; კიდეებზე გაბუნდოვნება (fade-start / fade-end) მაგივრობას უწევს გადახვევის მინიშნებას */
+.scroller { display: block; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 6px; margin-bottom: -6px; scrollbar-width: none; }
+.scroller::-webkit-scrollbar { display: none; }
+.scroller.fade-end { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 140px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 140px), transparent); }
+.scroller.fade-start:not(.fade-end) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 140px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 140px), transparent); }
+.scroller.fade-start.fade-end { -webkit-mask-image: linear-gradient(to right, transparent, #000 120px, #000 calc(100% - 140px), transparent); mask-image: linear-gradient(to right, transparent, #000 120px, #000 calc(100% - 140px), transparent); }
+.row { display: flex; gap: 17px; width: max-content; min-width: 100%; }
+.row-recent { width: auto; gap: 20px; flex-wrap: wrap; }
+.row > .state { flex: 1; }
+
+/* ===== მთავარი: Hero ===== */
+.hero { position: relative; height: 760px; min-height: 560px; overflow: hidden; background: var(--bg-page); }
+.hero-skeleton { position: absolute; inset: 0; border-radius: 0; }
+.hero-empty { height: 100%; display: flex; align-items: center; justify-content: center; padding-top: 80px; }
+.hero-slide { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .7s ease, visibility .7s; }
+.hero-slide.is-active { opacity: 1; visibility: visible; }
+.hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* ორმაგი გრადიენტი: მარცხნიდან (ტექსტის სიკითხვადობისთვის) და ქვემოდან (გვერდის ფონში გადასვლისთვის) */
+.hero-slide::before { content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to right, rgba(0,0,0,.8) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.08) 100%), linear-gradient(to top, var(--bg-page) 0%, rgba(7,12,28,0) 38%); }
+.hero-copy { position: absolute; z-index: 2; left: max(67px, calc(50% - 797px)); bottom: 179px; width: 580px; max-width: calc(100% - 140px); display: flex; flex-direction: column; align-items: flex-start; gap: 15px; }
+.hero-title { font-size: 40px; font-weight: 800; line-height: 1.05; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.hero-synopsis { width: 560px; max-width: 100%; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.hero-actions { display: flex; gap: 10px; margin-top: 5px; }
+.hero-controls { position: absolute; z-index: 3; left: 67px; right: 67px; bottom: 42px; display: flex; align-items: center; gap: 20px; }
+.hero-bars { flex: 1; display: flex; gap: 7px; }
+.hero-bar { position: relative; flex: 1; height: 15px; display: flex; align-items: center; }
+.hero-bar::before { content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 999px; background: #fff; opacity: .9; }
+/* პროგრესის ზოლი: ავსების ანიმაცია 6 წამი, მთავრდება -> შემდეგი სლაიდი (იხ. home.js) */
+.hero-bar .fill { position: absolute; left: 0; height: 3px; width: 0; border-radius: 999px; background: var(--red); }
+.hero-bar.is-done .fill { width: 100%; }
+.hero-bar.is-active .fill { animation: hero-fill 6s linear forwards; }
+.hero.is-static .hero-bar.is-active .fill { animation: none; width: 100%; }
+/* hover/ფოკუსზე ანიმაცია ჩერდება, ამიტომ ავტომატური გადართვაც ჩერდება */
+.hero:hover .hero-bar.is-active .fill, .hero:focus-within .hero-bar.is-active .fill { animation-play-state: paused; }
+@keyframes hero-fill { to { width: 100%; } }
+.hero-arrows { display: flex; gap: 10px; }
+
+/* ===== მთავარი: ბარათები ===== */
+.card-big { flex: none; width: 260px; height: 452px; padding: 12px; border-radius: var(--r-card); background: var(--bg-card); display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px var(--shadow), inset 0 0 4px var(--shadow); scroll-snap-align: start; transition: transform .2s; }
+.card-big:hover { transform: translateY(-3px); }
+.card-big-poster { display: block; height: 300px; border-radius: var(--r-img); overflow: hidden; background: var(--bg-raised); }
+.card-big-poster img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s; }
+.card-big:hover .card-big-poster img { transform: scale(1.03); }
+.card-big-info { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; margin-top: 10px; flex: 1; }
+.card-big-title { font-size: 18px; font-weight: 800; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; width: 100%; }
+.card-big-title:hover { color: #fff; text-decoration: underline; }
+.card-big-foot { display: flex; align-items: center; justify-content: space-between; }
+.card-big-foot .from { font-size: 12px; font-weight: 600; }
+/* საშუალო ბარათი 470×160 (Coming Soon) და მისგან მიღებული კომპაქტური recent ბარათი */
+.card-medium { flex: none; width: 470px; height: 160px; padding: 12px; border-radius: var(--r-card); background: var(--bg-card); display: flex; gap: 15px; box-shadow: 0 1px 2px var(--shadow); scroll-snap-align: start; }
+.card-medium-poster { flex: 1; min-width: 0; border-radius: var(--r-img); overflow: hidden; background: var(--bg-raised); }
+.card-medium-poster img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.card-medium-info { display: flex; flex-direction: column; justify-content: space-between; padding-right: 40px; min-width: 150px; }
+.card-medium-info .stack { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.card-medium-title { font-size: 13px; font-weight: 600; }
+.overline-red { color: var(--red); font-size: 12px; font-weight: 600; }
+.card-recent { width: 380px; height: 100px; padding: 8px; text-decoration: none; }
+.card-recent:hover { background: #24263a; }
+.card-recent .card-medium-poster { flex: none; width: 96px; }
+.card-recent .card-medium-info { padding-right: 8px; justify-content: center; }
+.card-recent .card-medium-title { font-size: 13px; font-weight: 800; }
+.btn-outline.is-done { border-color: var(--green); color: var(--green); }
+.card-big.skeleton { border-radius: var(--r-card); }
+.card-medium.skeleton { border-radius: var(--r-card); }
+
+/* ===== სეანსების გვერდი ===== */
+.sessions-page { padding: 24px 51px 60px; }
+.page-head h1 { font-size: 24px; font-weight: 800; }
+.page-head p { margin-top: 6px; }
+/* ორი სვეტი: ფილტრები (320px) და სია */
+.sessions-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 36px; margin-top: 28px; align-items: start; }
+/* ფილტრების პანელი sticky-ა: გადახვევისას თვალსაწიერში რჩება */
+.filters { position: sticky; top: 20px; background: var(--bg-card); border-radius: var(--r-card); padding: 22px 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+.filters h2 { font-size: 18px; font-weight: 800; margin-bottom: 18px; }
+.fgroup { border: 0; margin: 0; padding: 0 0 18px; margin-bottom: 18px; border-bottom: 1px solid var(--bg-raised); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fgroup legend { padding: 0; margin-bottom: 10px; font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--text-2); float: left; width: 100%; }
+.fgroup legend + * { clear: both; }
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.check input { position: absolute; opacity: 0; width: 16px; height: 16px; }
+/* მორგებული ჩექბოქსი; ნამდვილი input უჩინარია, მაგრამ კლავიატურით მუშაობს */
+.check .box { flex: none; display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; border: 1.5px solid var(--text-2); border-radius: 4px; color: transparent; transition: .12s; }
+.check:hover .box { border-color: #fff; }
+.check input:checked + .box { background: var(--red); border-color: var(--red); color: #fff; }
+.check input:focus-visible + .box { outline: 2px solid var(--red); outline-offset: 2px; }
+.check-label small { margin-left: 8px; font-weight: 400; color: var(--text-2); font-size: 11px; }
+.date-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.date-chip { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 9px; min-width: 40px; border-radius: 8px; background: var(--bg-raised); font-size: 10px; font-weight: 600; color: var(--text-2); }
+.date-chip b { font-size: 12px; color: #fff; }
+.date-chip:hover { background: #34364a; }
+.date-chip.is-selected { background: var(--red); color: #fff; }
+.filters-foot { display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+.results { min-width: 0; }
+.results-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; min-height: 22px; }
+.count { font-size: 13px; font-weight: 800; }
+.sort { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.sort-wrap { position: relative; display: inline-flex; align-items: center; }
+.sort-wrap select { appearance: none; background: none; border: 0; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 22px 4px 0; cursor: pointer; outline-offset: 2px; }
+.sort-wrap select option { background: var(--bg-card); }
+.sort-wrap .icon { position: absolute; right: 0; pointer-events: none; }
+.group { padding: 22px 0 26px; border-bottom: 1px solid var(--bg-raised); }
+.group:first-of-type { padding-top: 0; }
+.group-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.group-poster { flex: none; width: 48px; height: 68px; border-radius: 8px; overflow: hidden; background: var(--bg-raised); }
+.group-poster img { width: 100%; height: 100%; object-fit: cover; }
+.group-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.gt-line { display: flex; align-items: center; gap: 12px; }
+.gt-line h2 { font-size: 18px; font-weight: 800; }
+.gt-line h2 a:hover { text-decoration: underline; }
+.age-note { color: var(--amber); font-size: 12px; }
+.arrows-wrap { align-self: center; }
+.sc-row { display: flex; gap: 14px; width: max-content; min-width: 100%; }
+/* სეანსის ბარათი სეანსების გვერდზე; გათიშულია (disabled) გაყიდულ ან შეზღუდულ სეანსზე */
+.session-card { flex: none; width: 236px; display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 14px 14px 12px; border-radius: 14px; background: var(--bg-card); transition: background .15s, transform .15s; scroll-snap-align: start; }
+.session-card:hover:not(:disabled) { background: #272a40; transform: translateY(-2px); }
+.session-card:disabled { opacity: .4; }
+.sc-top, .sc-mid, .sc-bot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sc-time { font-size: 18px; font-weight: 800; }
+.sc-mid { font-size: 11px; }
+.sc-mid .muted { font-size: 11px; }
+.sc-left { display: inline-flex; align-items: center; gap: 4px; color: var(--green); font-size: 11px; font-weight: 600; }
+.sc-left.is-low { color: var(--red); }
+.sc-bot { align-items: flex-end; }
+.sc-venue { font-size: 11px; font-weight: 800; }
+.sc-bot strong { font-size: 15px; }
+.session-skel { flex: none; width: 236px; height: 92px; border-radius: 14px; }
+/* პაგინაცია */
+.pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+.pg-num, .pg-arrow { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 50%; font-size: 13px; font-weight: 600; }
+.pg-arrow { background: var(--bg-card); }
+.pg-num:hover, .pg-arrow:hover:not(:disabled) { background: var(--bg-raised); }
+.pg-num.is-current { background: var(--red); font-weight: 800; }
+.pg-arrow:disabled { opacity: .3; }
+.pg-gap { color: var(--text-2); padding: 0 2px; }
+.pg-text { flex-basis: 100%; text-align: center; }
+
+/* ===== ფილმის გვერდი ===== */
+.movie-hero { position: relative; min-height: 567px; overflow: hidden; background: var(--bg-card); }
+.movie-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.movie-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgba(7,12,28,.85), rgba(7,12,28,.25) 60%, rgba(7,12,28,.1)), linear-gradient(to top, var(--bg-page), rgba(7,12,28,0) 45%); }
+.movie-hero-inner { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 32px; padding: 150px 51px 40px; min-height: 567px; }
+.movie-poster { flex: none; width: 260px; aspect-ratio: 2 / 3; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5); background: var(--bg-raised); }
+.movie-poster img { width: 100%; height: 100%; object-fit: cover; }
+.movie-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; max-width: 760px; padding-bottom: 6px; }
+.movie-intro h1 { font-size: 40px; font-weight: 800; line-height: 1.05; }
+.movie-syn { font-size: 14px; line-height: 1.4; max-width: 660px; }
+/* ორი სვეტი: სეანსები (მარცხნივ) და Details პანელი (მარჯვნივ) */
+.movie-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; padding: 36px 51px 70px; align-items: start; }
+.ms h2, .details h2 { font-size: 18px; font-weight: 800; margin-bottom: 18px; }
+.ms-dates { margin-bottom: 20px; gap: 10px; }
+.ms-chip { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px; padding: 12px 0; border-radius: 14px; background: var(--bg-card); font-size: 12px; font-weight: 600; }
+.ms-chip b { font-size: 20px; }
+.ms-chip:hover:not(:disabled) { background: #272a40; }
+.ms-chip.is-selected { background: var(--red); }
+.ms-chip:disabled { opacity: .3; }
+.ms-list { display: flex; flex-direction: column; gap: 22px; }
+.ms .form-notice { margin-bottom: 18px; }
+.venue-block h3 { font-size: 14px; font-weight: 800; margin-bottom: 12px; }
+.hall-row { display: flex; flex-wrap: wrap; gap: 14px; }
+.hall-box { background: var(--bg-card); border-radius: 16px; padding: 12px; }
+.hall-name { font-size: 12px; font-weight: 600; margin: 0 0 10px 4px; }
+.tickets { display: flex; flex-wrap: wrap; gap: 10px; }
+/* სეანსი "ბილეთის" ფორმით: მარცხნივ დრო და ფორმატი, მარჯვნივ ფასი წერტილოვანი გამყოფით */
+.ticket { position: relative; display: flex; background: var(--bg-page); border-radius: 12px; text-align: center; transition: transform .15s, background .15s; }
+.ticket:hover:not(:disabled) { transform: translateY(-2px); background: #0c1330; }
+.ticket:disabled { opacity: .4; }
+.ticket-main { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 20px; }
+.ticket-main b { font-size: 18px; font-weight: 800; }
+.ticket-sub { display: flex; align-items: center; gap: 8px; }
+.ticket-sub small { color: var(--text-2); font-size: 11px; }
+.ticket-stub { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; padding: 12px 16px; border-left: 2px dotted var(--text-3); }
+.ticket-stub b { color: var(--red); font-size: 17px; font-weight: 800; }
+.ticket-stub small { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-size: 11px; }
+.details dl { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+.detail dt { font-size: 11px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--text-2); margin-bottom: 5px; }
+.detail dd { margin: 0; font-size: 14px; font-weight: 800; line-height: 1.35; }
+/* ასაკობრივი შენიშვნა (ნარინჯისფერი) */
+.rating-note { margin-top: 22px; padding: 12px 14px; border-radius: 12px; background: var(--tint-amber); color: var(--amber); font-size: 12px; }
+.rating-note b { display: block; margin-bottom: 6px; font-size: 11px; letter-spacing: .6px; }
+
+/* ===== პროფილი და ბილეთები ===== */
+.profile-page { padding: 24px 51px 80px; }
+.profile-page h1 { font-size: 24px; font-weight: 800; margin-bottom: 22px; }
+.ptabs { display: flex; gap: 28px; border-bottom: 1px solid var(--bg-raised); margin-bottom: 32px; }
+.ptab { display: inline-flex; align-items: center; gap: 8px; padding: 6px 2px 14px; font-size: 13px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ptab:hover { color: #fff; }
+.ptab.is-active { color: #fff; border-bottom-color: var(--red); }
+.tab-count { display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; align-items: center; justify-content: center; border-radius: 999px; background: var(--red); font-size: 11px; font-weight: 800; color: #fff; }
+.info-grid { display: grid; grid-template-columns: minmax(0, 640px) 320px; gap: 60px; align-items: start; }
+.profile-form { display: flex; flex-direction: column; gap: 18px; }
+.profile-form .btn { align-self: flex-start; margin-top: 8px; }
+.info-side { background: var(--bg-card); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.info-side h3 { font-size: 14px; font-weight: 800; margin-top: 6px; }
+.eligibility { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.profile-ok { padding: 10px 12px; border-radius: 10px; background: var(--tint-green); color: var(--green); font-weight: 800; font-size: 13px; }
+.profile-warn { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--tint-amber); color: var(--amber); font-weight: 600; font-size: 13px; }
+.segmented { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--bg-card); margin-bottom: 22px; }
+.seg { display: inline-flex; gap: 8px; align-items: center; padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.seg small { font-size: 11px; opacity: .8; }
+.seg.is-active { background: var(--bg-raised); color: #fff; }
+.tickets-list { display: flex; flex-direction: column; gap: 16px; }
+/* ბილეთის ბარათი: პოსტერი | ინფორმაცია | თანხა და Refund */
+.order { display: grid; grid-template-columns: 100px minmax(0, 1fr) 260px; gap: 20px; padding: 20px; border-radius: 24px; background: var(--bg-card); }
+.order-poster { width: 100px; height: 100px; align-self: start; border-radius: 10px; overflow: hidden; background: var(--bg-raised); }
+.order-poster img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.order-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.order-title a { font-size: 18px; font-weight: 800; }
+.order-title a:hover { text-decoration: underline; }
+.order-meta { display: flex; flex-wrap: wrap; gap: 8px 40px; margin: 0 0 14px; }
+.order-meta dt, .order-seats small, .order-side small { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--text-2); }
+.order-meta dd { margin: 3px 0 0; font-size: 13px; font-weight: 800; }
+.order-seats { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 5px 10px; border-radius: 8px; background: var(--bg-raised); font-size: 11px; font-weight: 600; }
+/* ბარათის მარჯვენა ნაწილი ხაზოვანი გამყოფით, როგორც ნამდვილი ბილეთი */
+.order-side { border-left: 1px dashed var(--text-3); padding-left: 20px; display: flex; flex-direction: column; gap: 12px; }
+.ref-code { display: block; margin-top: 3px; font-size: 13px; }
+.paid { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--text-2); }
+.paid b { color: #fff; font-size: 22px; }
+.refund-box { display: flex; flex-direction: column; gap: 8px; text-align: center; }
+.refund-box .btn { padding: 11px; }
+@media (max-width: 1100px) { .info-grid { grid-template-columns: 1fr; } .order { grid-template-columns: 80px 1fr; } .order-side { grid-column: 1 / -1; border-left: 0; padding-left: 0; border-top: 1px dashed var(--text-3); padding-top: 14px; } }

@@ -1,0 +1,85 @@
+/* ჯავშნის მოდალი უფრო ფართოა ვიდრე სხვები (დარბაზის რუკის გამო) */
+.modal-booking { max-width: 1146px; width: 100%; padding: 32px; }
+.booking-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
+.booking-head-r { display: flex; align-items: center; gap: 12px; }
+/* ჯავშნის უკუთვლა (SEATS HELD m:ss); ბოლო წუთში წითლდება */
+.hold-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 18px; border-radius: 14px; background: var(--bg-card); }
+.hold-chip small { font-size: 11px; font-weight: 600; color: var(--text-2); letter-spacing: .5px; }
+.hold-chip b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hold-chip.is-low b { color: var(--red); }
+/* საფეხურის ზოლი: SEATS -> CHECKOUT */
+.stepbar { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 720px); margin-bottom: 22px; border-radius: 999px; background: var(--bg-card); overflow: hidden; }
+.step { padding: 9px 0; text-align: center; font-size: 12px; font-weight: 800; border-radius: 999px; color: #fff; }
+.step.is-active { background: var(--red); }
+button.step:hover:not(.is-active):not(:disabled) { background: var(--bg-raised); }
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; margin-bottom: 18px; font-size: 13px; font-weight: 600; }
+.banner-warn { background: var(--tint-amber); color: var(--amber); }
+.banner-error { background: var(--tint-red); color: #ff7a63; }
+/* ორი სვეტი: რუკა მარცხნივ, არჩეული ადგილები მარჯვნივ */
+.seat-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 0; }
+.hall { padding-right: 32px; min-width: 0; }
+/* ეკრანის ზოლი რუკის თავში */
+.screen { margin: 0 20px 24px; padding: 8px; text-align: center; font-size: 12px; font-weight: 800; background: var(--bg-raised); border-radius: 0 0 40px 40px / 0 0 24px 24px; }
+.hall-sections { display: flex; flex-direction: column; gap: 18px; overflow-x: auto; padding-bottom: 6px; }
+.hall-section-title { font-size: 11px; font-weight: 600; letter-spacing: .6px; color: var(--text-2); margin-bottom: 10px; padding-left: 40px; }
+.seat-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; width: max-content; margin-inline: auto; }
+.row-label { width: 22px; text-align: center; font-size: 12px; font-weight: 800; }
+.seats { display: flex; gap: 7px; }
+.seat, .seat-gap { flex: none; width: 44px; height: 44px; border-radius: 9px; }
+/* ადგილი: ნაგულისხმევი = თავისუფალი */
+.seat { border: 1px solid #3a3d52; background: var(--bg-card); font-weight: 800; font-size: 14px; transition: background .12s, transform .1s; }
+.seat:hover:not(:disabled):not(.is-selected) { background: #2d3049; transform: translateY(-1px); }
+/* არჩეული ადგილი - წითელი */
+.seat.is-selected { background: var(--red); border-color: var(--red); }
+/* გაყიდული - მუქი, დაუწკაპუნებელი */
+.seat.is-sold { background: #14172a; border-color: #14172a; color: var(--text-3); }
+/* სხვის მიერ დროებით დაკავებული - დიაგონალური ზოლები */
+.seat.is-held { border-color: #3a3d52; color: var(--text-2); background: repeating-linear-gradient(135deg, #2a2c3d 0 5px, #1e2031 5px 10px); }
+.aisle { flex: none; width: 20px; }
+/* ლეგენდა: ყველა გამოყენებული ფერის განმარტება */
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin: 18px 0 0; padding: 0; font-size: 12px; color: var(--text-2); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.seat-legend { width: 16px; height: 16px; border-radius: 4px; display: inline-block; font-size: 0; }
+/* მარჯვენა პანელი ვერტიკალური გამყოფით */
+.seat-panel { border-left: 1px solid var(--bg-raised); padding-left: 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; min-height: 420px; }
+.panel-top h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.seat-notice, .issues { margin-top: 12px; color: #ff7a63; font-size: 12px; font-weight: 600; }
+.issues { padding-left: 16px; }
+.sel-list { list-style: none; padding: 0; margin: 16px 0 0; display: flex; flex-direction: column; gap: 10px; }
+/* არჩეული ადგილის სტრიქონი: კოდი, ბილეთის ტიპი, ფასი, მოხსნა */
+.sel-item { display: grid; grid-template-columns: 64px 1fr auto auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg-card); }
+.sel-seat b { display: block; font-size: 14px; }
+.sel-seat small, .sum-list small { color: var(--text-2); font-size: 11px; }
+.sel-type { position: relative; display: inline-flex; align-items: center; }
+.sel-type select { appearance: none; width: 100%; background: var(--bg-raised); border: 0; border-radius: 8px; padding: 7px 26px 7px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.sel-type select option { background: var(--bg-card); }
+.sel-type .icon { position: absolute; right: 8px; pointer-events: none; }
+.sel-price { font-size: 13px; }
+.sel-x { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-2); }
+.sel-x:hover { background: var(--tint-white); color: #fff; }
+.subtotal { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+.subtotal span { font-size: 12px; font-weight: 800; }
+.subtotal b { font-size: 24px; font-weight: 800; }
+/* გადახდის ეტაპი: ფორმა + შეკვეთის შეჯამება */
+.checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; }
+.checkout-form { display: flex; flex-direction: column; gap: 14px; }
+.co-h { font-size: 14px; font-weight: 800; margin-top: 4px; }
+.co-actions { display: flex; gap: 10px; margin-top: 10px; }
+.co-actions .btn-red { flex: 1; }
+.summary { background: var(--bg-card); border-radius: 18px; padding: 20px; align-self: start; display: flex; flex-direction: column; gap: 14px; }
+.summary h3 { font-size: 15px; font-weight: 800; }
+.sum-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sum-list li { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.sum-list li span { display: flex; flex-direction: column; gap: 2px; }
+.subtotal.total { padding-top: 12px; margin: 0; border-top: 1px solid var(--bg-raised); }
+/* დადასტურების ხედი */
+.confirm { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 10px 0; }
+.confirm h2 { font-size: 24px; font-weight: 800; }
+.confirm-ico { display: inline-flex; width: 64px; height: 64px; align-items: center; justify-content: center; border-radius: 50%; background: var(--tint-green); color: var(--green); }
+.ref { display: flex; flex-direction: column; gap: 4px; padding: 12px 28px; border-radius: 14px; border: 1px dashed var(--text-3); }
+.ref small { font-size: 11px; letter-spacing: .6px; color: var(--text-2); }
+.ref b { font-size: 24px; letter-spacing: 1.5px; }
+.confirm-card { width: min(100%, 460px); text-align: left; background: var(--bg-card); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.modal-actions.center { justify-content: center; }
+/* ვიწრო ეკრანებზე სვეტები ერთმანეთის ქვეშ გადადის */
+@media (max-width: 1000px) { .seat-layout, .checkout-layout { grid-template-columns: 1fr; } .seat-panel { border-left: 0; padding-left: 0; } .hall { padding-right: 0; } }

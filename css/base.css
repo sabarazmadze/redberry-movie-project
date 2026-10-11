@@ -1,0 +1,41 @@
+/* ყველა ელემენტზე padding და border შედის ზომაში - განლაგების გამოთვლა მარტივდება */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+/* body flex-სვეტია, რომ footer ყოველთვის გვერდის ბოლოში დარჩეს, თუნდაც შიგთავსი მცირე იყოს */
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.3;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.no-scroll { overflow: hidden; }
+#app { flex: 1 0 auto; outline: none; }
+h1, h2, h3, h4, p { margin: 0; }
+/* ბმულები და ღილაკები მემკვიდრეობით იღებენ ფერს/შრიფტს - სტანდარტული ბრაუზერული სტილი გამორთულია */
+a { color: inherit; text-decoration: none; cursor: pointer; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+button:disabled { cursor: not-allowed; }
+img { display: block; max-width: 100%; }
+input, select, textarea { font: inherit; color: inherit; }
+/* კლავიატურით ნავიგაციისას ფოკუსი მკაფიოდ ჩანს */
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+/* hidden ატრიბუტი ყოველთვის მუშაობდეს, display-ის სხვა წესების მიუხედავად */
+[hidden] { display: none !important; }
+/* ტექსტი მხოლოდ ეკრანის წამკითხველისთვის (ვიზუალურად დამალული) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+::selection { background: var(--red); color: #fff; }
+
+/* თხელი, მუქი სქროლბარი დიზაინთან შესაბამისად */
+* { scrollbar-width: thin; scrollbar-color: var(--bg-raised) transparent; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--bg-raised); border-radius: 8px; }
+
+/* მომხმარებლებს, რომლებსაც ანიმაცია არ უნდათ (სისტემის პარამეტრი), ანიმაციებს ვთიშავთ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

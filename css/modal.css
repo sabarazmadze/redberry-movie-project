@@ -1,0 +1,37 @@
+/* მოდალის ფონი: გამუქებული და დაბურული (backdrop-filter), გადახვევადი პატარა ეკრანებზე */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(3, 6, 16, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  overflow-y: auto; animation: fade-in .15s ease-out;
+}
+.modal-overlay.is-leaving { opacity: 0; transition: opacity .12s; }
+@keyframes fade-in { from { opacity: 0; } }
+/* მოდალის ყუთი: ცენტრში, ჩნდება მცირე ანიმაციით */
+.modal {
+  position: relative; width: 100%; max-width: 440px; margin: auto; background: var(--bg-page);
+  border: 1px solid var(--bg-raised); border-radius: 22px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  animation: pop-in .18s ease-out; outline: 0;
+}
+@keyframes pop-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+.modal-sm { max-width: 400px; }
+.modal-auth { max-width: 440px; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.modal-title { font-size: 20px; font-weight: 800; }
+.modal-sub { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+/* დახურვის (X) ღილაკი */
+.modal-x { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-2); flex: none; }
+.modal-x:hover { background: var(--tint-white); color: #fff; }
+.modal-form { display: flex; flex-direction: column; gap: 16px; }
+.modal-form .btn { margin-top: 6px; }
+.modal-foot { margin-top: 18px; text-align: center; font-size: 12px; color: var(--text-2); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.confirm-msg { font-size: 13px; line-height: 1.5; }
+
+/* ავატარის ასატვირთი სტრიქონი რეგისტრაციის მოდალში */
+.avatar-row { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 14px; background: var(--bg-card); cursor: pointer; }
+.avatar-row:hover { background: #24263a; }
+.avatar-row:focus-within { outline: 2px solid var(--red); }
+.avatar-preview { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 10px; background: var(--bg-raised); overflow: hidden; color: var(--text-2); flex: none; }
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-copy { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.avatar-copy small { color: var(--text-2); font-size: 11px; }

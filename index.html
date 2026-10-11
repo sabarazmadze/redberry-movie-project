@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- ძირითადი მეტა-ინფორმაცია: კოდირება და მობილური ხედის პარამეტრები -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070c1c">
+  <title>Kino XII</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ec3013'/%3E%3Ctext x='16' y='22' font-size='16' font-family='Arial' font-weight='800' fill='white' text-anchor='middle'%3EXII%3C/text%3E%3C/svg%3E">
+  <!-- შრიფტი Archivo (Figma-ს დიზაინის შრიფტი); preconnect აჩქარებს ჩატვირთვას -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- სტილები ლოგიკური თანმიმდევრობით: ტოკენები (ფერები, ზომები) -> ბაზა -> კომპონენტები -> მოდალები -> გვერდები -> ჯავშანი -->
+  <!-- ბილდის ეტაპი არ გვაქვს, ამიტომ ფაილები პირდაპირ ბრაუზერში იტვირთება -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/modal.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <link rel="stylesheet" href="/css/booking.css">
+</head>
+<body>
+  <!-- ზედა ზოლი (navbar) - ივსება js/components/shell.js-ით -->
+  <div id="app-header"></div>
+  <!-- მთავარი შიგთავსი - აქ როუტერი სვამს მიმდინარე გვერდს -->
+  <main id="app" tabindex="-1"></main>
+  <!-- ქვედა ზოლი (footer) -->
+  <div id="app-footer"></div>
+  <!-- ყველა მოდალი (შესვლა, ჯავშანი, დადასტურება) ამ კონტეინერში იხსნება -->
+  <div id="modal-root"></div>
+  <!-- მცირე შეტყობინებები (toast); aria-live უზრუნველყოფს ეკრანის წამკითხველით გახმოვანებას -->
+  <div id="toast-root" aria-live="polite"></div>
+  <!-- აპლიკაციის შესასვლელი - ES მოდული -->
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
