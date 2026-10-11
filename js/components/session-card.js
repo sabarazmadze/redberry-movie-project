@@ -2,19 +2,17 @@ import { h, icon } from '../dom.js';
 import { price } from '../format.js';
 import { isAgeBlocked, ageBlockMessage } from '../auth.js';
 
-/** ჯავშნის მოდალის კოდი იტვირთება მხოლოდ საჭიროებისას (დინამიური import). */
+/** Open the booking flow lazily so the modal code only loads when someone actually books. */
 export async function startBooking(session, movie) {
   const mod = await import('../modals/booking.js');
   mod.openBooking(session, movie);
 }
 
-/** სეანსის ბარათი სეანსების გვერდზე (დრო, ფორმატი, ენა, დარჩენილი ადგილები, დარბაზი, ფასი). */
+/** Card used on the Sessions page (design: time, format badge, language, seats left, hall, price). */
 export function sessionCard(session, movie) {
-  // ბარათი გათიშულია, თუ სეანსი გაყიდულია ან მომხმარებელი ასაკით ვერ აკმაყოფილებს შეზღუდვას
   const blocked = isAgeBlocked(movie);
   const soldOut = session.isSoldOut;
   const disabled = soldOut || blocked;
-  // 5 ან ნაკლები ადგილი -> წითელი ინდიკატორი
   const low = !soldOut && session.seatsLeft <= 5;
   const btn = h('button', {
     type: 'button', class: `session-card${soldOut ? ' is-soldout' : ''}${blocked ? ' is-blocked' : ''}`,

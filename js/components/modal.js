@@ -1,18 +1,13 @@
 import { h, icon, append } from '../dom.js';
 
-// მოდალების მენეჯერი. აპლიკაციის ყველა მოდალი აქ გადის, რომ ქცევა ერთნაირი იყოს:
-// გამუქებული/დაბურული ფონი, X / Close ღილაკი, Escape კლავიში და ფონზე დაწკაპუნება - ყველა ხურავს მოდალს.
+// Modal manager. Every modal in the app goes through here so the behaviour is identical:
+// dimmed + blurred backdrop, X / Close button, Escape key and overlay click all close it.
 
-// ღია მოდალების სტეკი: Escape ყოველთვის ზედა მოდალს ხურავს (მაგ. შესვლის მოდალი ჯავშნის მოდალის თავზე)
 const stack = [];
-// ელემენტები, რომლებზეც კლავიატურით შეიძლება გადასვლა (ფოკუსის მახე)
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-// როცა მოდალი ღიაა, ფონის გადახვევას ვთიშავთ
 function syncBody() { document.body.classList.toggle('no-scroll', stack.length > 0); }
 
-// ხსნის მოდალს. პარამეტრები: content, className, label (a11y), dismissible (false-ზე ვერ დაიხურება,
-// მაგ. გადახდის დროს), onClose. აბრუნებს API-ს: setContent, setDismissible, close.
 export function openModal({ content, className = '', label = 'Dialog', dismissible = true, onClose } = {}) {
   const previouslyFocused = document.activeElement;
   const dialog = h('div', { class: `modal ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': label, tabindex: '-1' });
@@ -37,13 +32,11 @@ export function openModal({ content, className = '', label = 'Dialog', dismissib
     },
   };
 
-  // ფონზე (overlay) დაწკაპუნება ხურავს მოდალს; mousedown-ს ვიყენებთ, რომ ტექსტის მონიშვნისას მაუსის გაშვებამ შემთხვევით არ დახუროს
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay && api.dismissible) api.close('overlay'); });
   if (content) api.setContent(content);
   document.getElementById('modal-root').append(overlay);
   stack.push(api);
   syncBody();
-  // გახსნისას ფოკუსი გადადის პირველ ველზე (ან პირველ ღილაკზე)
   requestAnimationFrame(() => {
     const first = dialog.querySelector('input:not([type=hidden]), select, textarea') || dialog.querySelector(FOCUSABLE);
     (first || dialog).focus({ preventScroll: true });
@@ -51,12 +44,11 @@ export function openModal({ content, className = '', label = 'Dialog', dismissib
   return api;
 }
 
-// გლობალური კლავიატურა: Escape ხურავს ზედა მოდალს, Tab ფოკუსს მოდალში აკავებს
 document.addEventListener('keydown', (e) => {
   const top = stack[stack.length - 1];
   if (!top) return;
   if (e.key === 'Escape' && top.dismissible) { e.preventDefault(); top.close('escape'); }
-  if (e.key === 'Tab') { // ფოკუსი მოდალის შიგნით რჩება (Tab ციკლურად ტრიალებს)
+  if (e.key === 'Tab') { // keep focus inside the dialog
     const items = [...top.el.querySelectorAll(FOCUSABLE)].filter((n) => n.offsetParent !== null);
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
@@ -65,12 +57,11 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// X ღილაკი მოდალის სათაურისთვის
 export function closeButton(onClick, label = 'Close') {
   return h('button', { type: 'button', class: 'modal-x', 'aria-label': label, onclick: onClick }, icon('close', 16));
 }
 
-/** დადასტურების დიალოგი: აბრუნებს Promise<boolean>-ს (true = დაადასტურა). */
+/** Promise<boolean> confirmation dialog. */
 export function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }) {
   return new Promise((resolve) => {
     let answer = false;
@@ -85,7 +76,7 @@ export function confirmDialog({ title, message, confirmLabel = 'Confirm', cancel
   });
 }
 
-/** მარტივი საინფორმაციო დიალოგი Close ღილაკით (და სურვილისამებრ ერთი მოქმედების ღილაკით). */
+/** Simple informational dialog with a single Close button. */
 export function infoDialog({ title, message, actionLabel, onAction }) {
   const modal = openModal({ label: title, className: 'modal-sm' });
   modal.setContent(

@@ -3,26 +3,21 @@ import { api, isAbort } from '../api.js';
 import { navigate } from '../router.js';
 import { price } from '../format.js';
 
-// ძიების ველი navbar-ში. მდგომარეობები: საწყისი შეთავაზება, ჩატვირთვა, შედეგები, არაფერი მოიძებნა, შეცდომა.
-// ძიება იწყება 300 მწმ პაუზის შემდეგ (debounce), წინა მოთხოვნა უქმდება.
 export function createSearch() {
   const input = h('input', { type: 'search', placeholder: 'Search films and live events', 'aria-label': 'Search films and live events', autocomplete: 'off', role: 'combobox', 'aria-expanded': 'false', 'aria-controls': 'search-panel' });
   const clearBtn = h('button', { type: 'button', class: 'search-clear', 'aria-label': 'Clear search', hidden: true, onclick: () => { input.value = ''; clearBtn.hidden = true; show('prompt'); input.focus(); } }, icon('close', 10));
   const panel = h('div', { class: 'search-panel', id: 'search-panel', role: 'listbox', hidden: true });
   const el = h('div', { class: 'search' }, h('div', { class: 'search-box' }, icon('search', 14), input, clearBtn), panel);
 
-  // controller - მიმდინარე მოთხოვნის გასაუქმებლად; items - შედეგების ღილაკები; activeIndex - კლავიატურით არჩეული შედეგი
   let controller = null;
   let items = [];
   let activeIndex = -1;
 
   const browseBtn = () => h('button', { type: 'button', class: 'btn btn-ghost btn-sm', onclick: () => { close(); navigate('/sessions'); } }, 'Browse all sessions');
 
-  // პანელის გახსნა/დახურვა (დახურვისას მიმდინარე მოთხოვნასაც ვაუქმებთ)
   function open() { panel.hidden = false; input.setAttribute('aria-expanded', 'true'); }
   function close() { panel.hidden = true; input.setAttribute('aria-expanded', 'false'); activeIndex = -1; if (controller) controller.abort(); }
 
-  // ხატავს პანელს მდგომარეობის მიხედვით (prompt | loading | error | none | results)
   function show(state, data) {
     open();
     items = [];
@@ -48,7 +43,6 @@ export function createSearch() {
     }
   }
 
-  // ასრულებს ძიებას; ახალი მოთხოვნა ძველს აუქმებს, რომ გვიან მოსულმა პასუხმა შედეგი არ ჩაანაცვლოს
   async function run(q) {
     if (controller) controller.abort();
     if (!q) { show('prompt'); return; }
@@ -63,7 +57,6 @@ export function createSearch() {
     }
   }
 
-  // ბოლო ღილაკის დაჭერიდან 300 მწმ-ის შემდეგ ვაგზავნით მოთხოვნას
   const debounced = debounce((q) => run(q), 300);
   input.addEventListener('focus', () => { if (!input.value.trim()) show('prompt'); else open(); });
   input.addEventListener('input', () => {
@@ -72,7 +65,6 @@ export function createSearch() {
     if (!q) { debounced.cancel(); run(''); return; }
     debounced(q);
   });
-  // კლავიატურა: Escape ხურავს, ↑/↓ არჩევს შედეგს, Enter ხსნის არჩეულს
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { close(); input.blur(); }
     else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && items.length) {
@@ -82,7 +74,6 @@ export function createSearch() {
       items[activeIndex].scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); items[activeIndex].click(); }
   });
-  // პანელის გარეთ დაწკაპუნება ხურავს მას
   document.addEventListener('mousedown', (e) => { if (!el.contains(e.target)) close(); });
   return { el, close };
 }

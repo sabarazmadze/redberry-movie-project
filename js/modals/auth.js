@@ -4,14 +4,13 @@ import { createField, validators, applyServerErrors } from '../components/field.
 import { toast } from '../components/toast.js';
 import { login, register, isAuthed } from '../auth.js';
 
-// ავატარის დასაშვები ფორმატები და მაქსიმალური ზომა
 const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const AVATAR_MAX = 2 * 1024 * 1024;
 
 /**
- * ხსნის შესვლის / რეგისტრაციის მოდალს. ორ ხედს შორის გადართვისას ერთი და იგივე მოდალი გამოიყენება.
- * onSuccess სრულდება წარმატებული შესვლის ან რეგისტრაციის შემდეგ (გამოიყენება შეწყვეტილი მოქმედების გასაგრძელებლად);
- * onCancel სრულდება, თუ მოდალი დაიხურა შესვლის გარეშე.
+ * Opens the login / sign-up modal. One modal element is reused when switching between the two views.
+ * onSuccess runs after a successful login or registration (used to replay the action that needed auth);
+ * onCancel runs if the modal is closed without signing in.
  */
 export function openAuthModal({ mode = 'login', notice = '', onSuccess, onCancel } = {}) {
   let succeeded = false;
@@ -21,7 +20,6 @@ export function openAuthModal({ mode = 'login', notice = '', onSuccess, onCancel
     onClose: () => { if (!succeeded && onCancel) onCancel(); },
   });
 
-  // წარმატების შემდეგ: მოდალი იხურება, მხოლოდ ახალი ანგარიშისას ვაჩვენებთ შეტყობინებას პროფილის შევსების შესახებ და ვაგრძელებთ შეწყვეტილ მოქმედებას
   const done = (user, fresh) => {
     succeeded = true;
     modal.close('success');
@@ -30,24 +28,20 @@ export function openAuthModal({ mode = 'login', notice = '', onSuccess, onCancel
   };
 
   const close = () => modal.close('x');
-  // ორ ხედს შორის გადართვა (login <-> register)
   const show = (view) => modal.setContent(view === 'login' ? loginView(show, done, notice, close) : registerView(show, done, close));
   show(mode);
   return modal;
 }
 
-// ფორმის ზოგადი შეცდომის ბლოკი (API-ს შეტყობინებისთვის)
 function formError() { return h('div', { class: 'form-error', role: 'alert', hidden: true }); }
 function setFormError(el, message) { el.textContent = message || ''; el.hidden = !message; }
 
-// გაგზავნის ღილაკი loading მდგომარეობით (გათიშულია მოთხოვნის დროს)
 function submitButton(label) {
   const btn = h('button', { type: 'submit', class: 'btn btn-red btn-block btn-lg' }, h('span', { class: 'btn-label' }, label));
   btn.setLoading = (on) => { btn.disabled = on; btn.classList.toggle('is-loading', on); btn.setAttribute('aria-busy', on ? 'true' : 'false'); };
   return btn;
 }
 
-// შესვლის ხედი: Email + Password. შეცდომისას მოდალი რჩება ღია, ელფოსტა ინახება
 function loginView(show, done, notice, close) {
   const email = createField({ label: 'Email', name: 'email', type: 'email', placeholder: 'example@gmail.com', autocomplete: 'email', validate: validators.email });
   const password = createField({ label: 'Password', name: 'password', type: 'password', placeholder: '••••••••', autocomplete: 'current-password', validate: validators.password });
@@ -69,8 +63,8 @@ function loginView(show, done, notice, close) {
       } catch (err) {
         busy = false; submit.setLoading(false);
         if (err.status === 422 && err.errors) { const rest = applyServerErrors(err.errors, { email, password }); if (rest.length) setFormError(error, rest[0]); }
-        else setFormError(error, err.message); // 401 = არასწორი მონაცემები, ან ქსელის / 500 შეცდომა
-        password.input.value = '';              // ელფოსტა რჩება, პაროლი იშლება
+        else setFormError(error, err.message); // 401 wrong credentials, or network / 500
+        password.input.value = '';              // keep the email, clear the password
       }
     } },
     notice && h('div', { class: 'form-notice' }, icon('alert', 16), h('span', null, notice)),
@@ -83,7 +77,6 @@ function loginView(show, done, notice, close) {
   ];
 }
 
-// რეგისტრაციის ხედი: ავატარი (არასავალდებულო, წინასწარი გადახედვით), Username, Email, Password, Confirm Password
 function registerView(show, done, close) {
   let avatarFile = null;
   const preview = h('span', { class: 'avatar-preview' }, icon('upload', 18));
@@ -91,7 +84,6 @@ function registerView(show, done, close) {
   const fileInput = h('input', { type: 'file', accept: AVATAR_TYPES.join(','), class: 'sr-only', id: 'avatar-input', tabindex: '-1' });
   const avatarRow = h('label', { class: 'avatar-row', for: 'avatar-input' }, preview,
     h('span', { class: 'avatar-copy' }, h('strong', null, 'Upload avatar ', h('span', { class: 'field-opt' }, '(optional)')), h('small', null, 'JPG, PNG or WebP · max 2 MB')));
-  // ავატარის არჩევა: ვამოწმებთ ფორმატს (jpg/png/webp) და ზომას; წარმატების შემთხვევაში ვაჩვენებთ preview-ს
   fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
     avatarMsg.textContent = '';
@@ -111,7 +103,6 @@ function registerView(show, done, close) {
 
   const username = createField({ label: 'Username', name: 'username', placeholder: 'User', autocomplete: 'username', validate: validators.username });
   const email = createField({ label: 'Email', name: 'email', type: 'email', placeholder: 'example@gmail.com', autocomplete: 'email', validate: validators.email });
-  // Confirm Password უნდა ემთხვეოდეს Password-ს (password ველი ქვემოთაა გამოცხადებული - გამოიყენება მხოლოდ ვალიდაციისას)
   const confirm = createField({ label: 'Confirm password', name: 'password_confirmation', type: 'password', placeholder: '••••••••', autocomplete: 'new-password',
     validate: (v) => (!v ? 'Please confirm your password' : v !== password.value ? 'Passwords do not match' : '') });
   const password = createField({ label: 'Password', name: 'password', type: 'password', placeholder: '••••••••', autocomplete: 'new-password', validate: validators.password,
@@ -156,7 +147,7 @@ function registerView(show, done, close) {
   ];
 }
 
-/** თუ მომხმარებელი ავტორიზებულია, action მაშინვე სრულდება; სხვა შემთხვევაში იხსნება შესვლის მოდალი და action სრულდება შესვლისთანავე. */
+/** Run `action` now if signed in, otherwise open the login modal and run it right after a successful sign-in. */
 export function requireAuth(action, { notice } = {}) {
   if (isAuthed()) return action();
   return new Promise((resolve) => {

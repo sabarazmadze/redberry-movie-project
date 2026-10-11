@@ -6,13 +6,10 @@ import { navigate, currentPath } from '../router.js';
 import { initials } from '../format.js';
 import { toast } from './toast.js';
 
-// ჩარჩოს (navbar + footer) ელემენტები, რომლებსაც შემდეგ ვანახლებთ
 let navLinkSessions;
 let rightSlot;
-// მომხმარებლის მენიუს დახურვის ფუნქცია (ყოველ რენდერზე ახლდება)
 let closeMenu = () => {};
 
-// ქმნის navbar-ს (ლოგო, სეანსები, ძიება, ანგარიში) და footer-ს; ხელახლა ხატავს ანგარიშის ნაწილს ავტორიზაციის ცვლილებაზე
 export function mountShell() {
   const header = document.getElementById('app-header');
   const search = createSearch();
@@ -32,13 +29,10 @@ export function mountShell() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 }
 
-// ხაზს უსვამს "Sessions" ბმულს, როცა ამ გვერდზე ვართ
 export function updateActiveLink() {
   if (navLinkSessions) navLinkSessions.classList.toggle('is-active', currentPath().startsWith('/sessions'));
 }
 
-// ანგარიშის ნაწილი: სტუმარს - Sign up / Log in ღილაკები; ავტორიზებულს - ავატარი, სახელი და ჩამოსაშლელი მენიუ.
-// ავატარზე წერტილი: ყვითელი = პროფილი არასრულია, მწვანე = სრულია.
 function renderAccount(user) {
   if (!rightSlot) return;
   closeMenu = () => {};
@@ -53,7 +47,6 @@ function renderAccount(user) {
     user.avatar ? img(user.avatar, '', '') : initials(user.fullName || user.username),
     h('span', { class: `dot${user.profileComplete ? ' ok' : ''}`, title: user.profileComplete ? 'Profile complete' : 'Profile incomplete' }));
 
-  // ჩამოსაშლელი მენიუ: პროფილის სტატუსი, My Profile, My Tickets, Log out
   const menu = h('div', { class: 'user-menu', role: 'menu', hidden: true });
   const btn = h('button', { type: 'button', class: 'user-btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
     avatar(), h('span', { class: 'user-name' }, first), icon('down', 16));
@@ -73,7 +66,6 @@ function renderAccount(user) {
       if (currentPath().startsWith('/profile')) navigate('/');
     } }, icon('logout', 16), 'Log out'));
 
-  // ახლა, როცა მენიუ არსებობს, closeMenu მას ნამდვილად ხურავს
   closeMenu = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
   btn.addEventListener('click', () => { menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden)); });
   rightSlot.replaceChildren(h('div', { class: 'user' }, btn, menu));

@@ -8,12 +8,10 @@ import { scroller } from '../components/scroller.js';
 import { sessionCard } from '../components/session-card.js';
 import { ageBadge, errorState, emptyState } from '../components/cards.js';
 
-// სიის ტიპის ფილტრები URL-ში მძიმით გამოყოფილი მნიშვნელობებით (venue=a,b)
 const LIST_KEYS = ['venue', 'format', 'language', 'time'];
-// "a,b" -> ['a','b'] (ცარიელი ელემენტების გარეშე)
 const csv = (v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean) : []);
 
-/** URL <-> მდგომარეობა. ყველაფერი, რასაც გვერდი აჩვენებს, query სტრიქონიდან გამოითვლება (დავალების სავალდებულო მოთხოვნა). */
+/** URL <-> state. Everything the page shows is derived from the query string. */
 function readState(query, options) {
   const valid = (key, list) => { const ok = new Set(list.map((o) => o.slug || o.id)); return csv(query.get(key)).filter((x) => ok.has(x)); };
   const sortIds = options.sorts.map((s) => s.id);
@@ -28,7 +26,6 @@ function readState(query, options) {
     page: page > 0 ? page : 1,
   };
 }
-// მდგომარეობა -> URL; ნაგულისხმევ სორტირებას და 1-ელ გვერდს URL-ში არ ვწერთ
 function toUrl(state, options) {
   const p = new URLSearchParams();
   LIST_KEYS.forEach((k) => { if (state[k].length) p.set(k, state[k].join(',')); });
@@ -37,15 +34,11 @@ function toUrl(state, options) {
   if (state.page > 1) p.set('page', state.page);
   return `/sessions?${p.toString().replace(/%2C/g, ',')}`;
 }
-// აქტიური ფილტრების რაოდენობა (თარიღი არ ითვლება)
 const activeCount = (s) => LIST_KEYS.reduce((n, k) => n + s[k].length, 0);
 
-// სეანსების გვერდი: მარცხნივ ფილტრები, მარჯვნივ ფილმების მიხედვით დაჯგუფებული სეანსები.
-// ფილტრის შეცვლა = navigate() ახალ URL-ზე; როუტერი იძახებს update()-ს, ის კი ხელახლა კითხულობს URL-ს და ტვირთავს მონაცემს.
 export function mount(root, ctx) {
   let options = null;
   let state = null;
-  // controller აუქმებს წინა მოთხოვნას (სწრაფი ფილტრების შეცვლისას ძველი პასუხი ახალს არ ჩაანაცვლებს)
   let controller = null;
   let lastData = null;
 
@@ -55,33 +48,29 @@ export function mount(root, ctx) {
     h('header', { class: 'page-head' }, h('h1', null, 'Sessions'), h('p', { class: 'muted' }, 'Browse showtimes across all venues')),
     h('div', { class: 'sessions-layout' }, sidebar, results)));
 
-  // ფილტრის ცვლილება -> ახალი URL (pushState, ამიტომ Back მუშაობს)
   const go = (patch, { keepPage = false } = {}) => {
     const next = { ...state, ...patch };
-    if (!keepPage) next.page = 1; // ფილტრის ან სორტირების ნებისმიერი ცვლილება 1-ელ გვერდზე აბრუნებს
+    if (!keepPage) next.page = 1; // any filter / sort change goes back to page 1
     navigate(toUrl(next, options), { scroll: false });
   };
 
-  // ფორმატები, რომლებიც არჩეულ დარბაზებში არსებობს (დარბაზი არჩეული არ არის -> ყველა)
   function availableFormats(s) {
     if (!s.venue.length) return options.formats;
     const ids = new Set(options.venues.filter((v) => s.venue.includes(v.slug)).flatMap((v) => v.formats.map((f) => f.slug)));
     return options.formats.filter((f) => ids.has(f.slug));
   }
 
-  // ჩექბოქსის გადართვა
   function toggle(key, slug) {
     const cur = state[key];
     const next = cur.includes(slug) ? cur.filter((x) => x !== slug) : [...cur, slug];
     const patch = { [key]: next };
-    if (key === 'venue') { // ფორმატებს ვავიწროებთ იმით, რასაც არჩეული დარბაზები რეალურად აჩვენებენ
+    if (key === 'venue') { // narrow formats to what the chosen venues can show
       const avail = new Set(availableFormats({ ...state, venue: next }).map((f) => f.slug));
       patch.format = state.format.filter((f) => avail.has(f));
     }
     go(patch);
   }
 
-  // ფილტრის ჯგუფი ჩექბოქსებით (ვიზუალურად მორგებული, მაგრამ ნამდვილი <input type=checkbox>)
   function checkGroup(title, key, items, labelOf, hintOf) {
     return h('fieldset', { class: 'fgroup' }, h('legend', null, title),
       items.map((it) => {
@@ -93,7 +82,6 @@ export function mount(root, ctx) {
       }));
   }
 
-  // გვერდითი პანელი: Venue, Date (7 დღე), Format, Language, Time of day, Clear All Filters და აქტიური ფილტრების მთვლელი
   function renderSidebar() {
     const n = activeCount(state);
     const formats = availableFormats(state);
@@ -114,10 +102,8 @@ export function mount(root, ctx) {
         h('p', { class: 'muted', 'aria-live': 'polite' }, `${n} filter${n === 1 ? '' : 's'} active`)));
   }
 
-  // ასუფთავებს ყველა ფილტრს გარდა თარიღისა
   const clearAll = () => go({ venue: [], format: [], language: [], time: [] });
 
-  // ჩატვირთვის სკელეტონები სიისთვის (მთელ გვერდს არ ვფარავთ სპინერით)
   function skeleton() {
     results.replaceChildren(h('div', { class: 'results-head' }, h('div', { class: 'skeleton', style: { width: '150px', height: '16px' } })),
       ...[0, 1, 2].map(() => h('div', { class: 'group' },
@@ -125,7 +111,6 @@ export function mount(root, ctx) {
         h('div', { class: 'sc-row' }, ...[0, 1, 2, 3].map(() => h('div', { class: 'skeleton session-skel' }))))));
   }
 
-  // პაგინაცია: ისრები, გვერდების ნომრები ბოლოებით და მიმდინარე გვერდის გარშემო (…-ით), "Page X of Y"
   function pagination(meta) {
     if (!meta || meta.lastPage <= 1) return null;
     const { currentPage: cur, lastPage: last } = meta;
@@ -142,7 +127,6 @@ export function mount(root, ctx) {
       h('p', { class: 'pg-text muted' }, `Page ${cur} of ${last}`));
   }
 
-  // შედეგები: მთვლელი, სორტირება, ფილმების ჯგუფები სეანსებით, პაგინაცია; ცარიელი შედეგისას - განმარტება და გასუფთავების ღილაკი
   function renderResults(data) {
     lastData = data;
     const { meta } = data;
@@ -174,7 +158,6 @@ export function mount(root, ctx) {
     results.replaceChildren(head, ...groups, pagination(meta));
   }
 
-  // სეანსების ჩატვირთვა მიმდინარე ფილტრებით (შეცდომისას - retry)
   async function load() {
     if (controller) controller.abort();
     controller = new AbortController();
@@ -190,7 +173,6 @@ export function mount(root, ctx) {
     }
   }
 
-  // პირველად ჯერ ფილტრის პარამეტრებს ვტვირთავთ (დარბაზები, ფორმატები...), შემდეგ ვხატავთ პანელს და სიას
   async function init(c) {
     results.replaceChildren(h('div', { class: 'skeleton', style: { height: '300px' } }));
     sidebar.replaceChildren(h('div', { class: 'skeleton', style: { height: '600px' } }));
@@ -201,7 +183,7 @@ export function mount(root, ctx) {
   function apply(c) { state = readState(c.query, options); renderSidebar(); load(); }
 
   init(ctx);
-  // შესვლა/გასვლისას ბარათებს თავიდან ვხატავთ, რომ ასაკობრივი შეზღუდვები განახლდეს
+  // re-render cards when the user signs in/out so age restrictions update
   const unsub = subscribe(() => { if (lastData) renderResults(lastData); });
   return { update: (c) => { if (options) apply(c); }, destroy: () => { unsub(); if (controller) controller.abort(); } };
 }

@@ -11,7 +11,6 @@ import { navigate } from '../router.js';
 import { validateMobile } from '../validation.js';
 import { ageFrom, parseDate, todayYmd, price, shortDate, minusHours } from '../format.js';
 
-// პროფილის გვერდი ორი ჩანართით: Personal Information და My Tickets (ბეჯზე ჩანს მომავალი ბილეთების რაოდენობა)
 export function mount(root, ctx) {
   let tab = ctx.query.get('tab') === 'tickets' ? 'tickets' : 'info';
   let orders = null;
@@ -20,10 +19,9 @@ export function mount(root, ctx) {
   const shell = h('div', { class: 'profile-page' });
   root.append(shell);
 
-  // გვერდის დაწყება: სტუმარს შესვლას ვთხოვთ
   const start = () => {
     if (!getUser()) {
-      // დაცული გვერდია: ვთხოვთ შესვლას; თუ უარს იტყვის, მთავარზე ვაბრუნებთ.
+      // Protected page: ask for login; if they back out, go home.
       shell.replaceChildren(h('div', { class: 'state' }, h('span', { class: 'ico' }, icon('user', 22)), h('h3', null, 'Please log in'), h('p', null, 'Log in to manage your profile and tickets.')));
       openAuthModal({ mode: 'login', onSuccess: () => alive && build(), onCancel: () => { if (alive && !getUser()) navigate('/'); } });
       return;
@@ -31,7 +29,6 @@ export function mount(root, ctx) {
     build();
   };
 
-  // ჩანართებისა და პანელის აგება; ჩანართის არჩევა ინახება URL-ში (?tab=tickets)
   function build() {
     unsub();
     const tabs = h('div', { class: 'ptabs', role: 'tablist' });
@@ -46,7 +43,7 @@ export function mount(root, ctx) {
 
     const setBadge = () => { const n = (orders || []).filter((o) => o.isUpcoming).length; badge.textContent = n; badge.hidden = !orders || n === 0; };
     const show = () => (tab === 'info' ? infoTab(panel) : ticketsTab(panel, () => orders, (o) => { orders = o; setBadge(); }));
-    // ბეჯისთვის ბილეთების რაოდენობა გვჭირდება მაშინაც, როცა პირადი ინფორმაციის ჩანართი ჩანს
+    // count badge needs the tickets even when the info tab is showing
     api.tickets().then((o) => { orders = o; setBadge(); }).catch(() => {});
     show();
     unsub = subscribe((u) => { if (!u && alive) navigate('/'); });
@@ -56,7 +53,7 @@ export function mount(root, ctx) {
   return { destroy: () => { alive = false; unsub(); } };
 }
 
-// ---------------------------------------------------------------- პირადი ინფორმაცია
+// ---------------------------------------------------------------- personal information
 function infoTab(panel) {
   const user = getUser();
   panel.replaceChildren(h('div', { class: 'skeleton', style: { height: '320px', maxWidth: '640px' } }));
@@ -81,15 +78,13 @@ function infoTab(panel) {
     const eligibility = h('p', { class: 'eligibility' });
     const formError = h('div', { class: 'form-error', role: 'alert', hidden: true });
     const save = h('button', { type: 'submit', class: 'btn btn-red btn-lg', disabled: true }, 'Save changes');
-    // "Save changes" ღილაკისთვის: ვადარებთ საწყის და მიმდინარე მნიშვნელობებს
     const initial = () => JSON.stringify([user.fullName || '', (user.mobileNumber || '').replace(/\s/g, ''), user.dateOfBirth || '', String(user.preferredVenue ? user.preferredVenue.id : '')]);
     const current = () => JSON.stringify([name.value.trim(), mobile.value.replace(/\s/g, ''), dob.value, venue.value]);
     const allValid = () => name.isValid() && mobile.isValid() && dob.isValid();
     let busy = false;
 
-    // ანახლებს: Save ღილაკის მდგომარეობას, "Profile Complete ✓" / გაფრთხილებას და ასაკის მიხედვით ბილეთების ყიდვის შესაძლებლობას
     function refresh() {
-      save.disabled = busy || current() === initial() || !allValid(); // გათიშულია, სანამ ცვლილება არ არის და ფორმა ვალიდური არ გახდება
+      save.disabled = busy || current() === initial() || !allValid(); // disabled until changed and valid
       const u = getUser();
       status.replaceChildren(u.profileComplete
         ? h('div', { class: 'profile-ok' }, 'Profile Complete ✓')
@@ -112,7 +107,7 @@ function infoTab(panel) {
       busy = true; save.classList.add('is-loading'); refresh();
       try {
         const saved = await api.updateProfile({ fullName: name.value.trim(), mobileNumber: mobile.value.replace(/\s/g, ''), dateOfBirth: dob.value, preferredVenueId: venue.value });
-        setUser(saved); // ახლა ყველაფერი სერვერის პასუხიდან ჩანს (ლოკალურად არაფერს ვხვრეტთ)
+        setUser(saved); // everything shown now comes from the server response
         Object.assign(user, saved);
         mobile.setValue(saved.mobileNumber ? saved.mobileNumber.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3') : mobile.value);
         toast('Profile saved.', { type: 'success' });
@@ -128,7 +123,7 @@ function infoTab(panel) {
   }).catch((e) => panel.replaceChildren(errorState(e.message, () => infoTab(panel), "Couldn't load your profile")));
 }
 
-// ---------------------------------------------------------------- ბილეთები
+// ---------------------------------------------------------------- tickets
 function ticketsTab(panel, getOrders, setOrders) {
   let sub = 'upcoming';
   const load = async () => {
@@ -149,7 +144,6 @@ function ticketsTab(panel, getOrders, setOrders) {
           : emptyState({ title: 'No past tickets', message: 'Tickets for finished sessions and refunded orders show up here.', iconName: 'ticket' }));
   }
 
-  // ბილეთის ბარათი: პოსტერი, ფილმი, თარიღი, დარბაზი, ფორმატი, ადგილები ტიპებით, თანხა და Refund (გათიშულია სეანსამდე 2 საათზე ნაკლებისას, მიზეზით)
   function orderCard(o, withActions) {
     const s = o.session, m = s.movie;
     const refundBtn = h('button', { type: 'button', class: 'btn btn-ghost btn-block', disabled: !o.isRefundable || null, onclick: () => refund(o, refundBtn) }, 'Refund');
@@ -169,19 +163,18 @@ function ticketsTab(panel, getOrders, setOrders) {
         withActions && h('div', { class: 'refund-box' }, refundBtn, h('p', { class: 'muted' }, reason))));
   }
 
-  // თანხის დაბრუნება: დადასტურება -> API -> ბილეთი გადადის Past-ში (სერვერის პასუხის მიხედვით)
   async function refund(o, btn) {
     const ok = await confirmDialog({ title: 'Refund this order?', message: `${o.session.movie.title} · ${shortDate(o.session.date)} ${o.session.time}. The seats will be released and this can't be undone.`, confirmLabel: 'Yes, refund', danger: true });
     if (!ok || btn.disabled) return;
     btn.disabled = true; btn.classList.add('is-loading');
     try {
       const updated = await api.refund(o.reference);
-      setOrders(getOrders().map((x) => (x.reference === updated.reference ? updated : x))); // ვიყენებთ სერვერის მიერ დაბრუნებულ შეკვეთას
+      setOrders(getOrders().map((x) => (x.reference === updated.reference ? updated : x))); // use the server's version of the order
       toast('Refund processed. Your seats have been released.', { type: 'success' });
     } catch (e) {
       if (e.status !== 401) toast(e.message, { type: 'error' });
-      // სერვერი არის ჭეშმარიტების წყარო: ვტვირთავთ თავიდან, რომ ღილაკი რეალობას ასახავდეს
-      try { setOrders(await api.tickets()); } catch { /* ვტოვებთ სიას, რომელიც გვაქვს */ }
+      // the server is the source of truth: reload so the button reflects reality
+      try { setOrders(await api.tickets()); } catch { /* keep the list we have */ }
     }
     draw();
   }

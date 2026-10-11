@@ -4,17 +4,15 @@ import { dayMonth, price } from '../format.js';
 import { requireAuth } from '../modals/auth.js';
 import { toast } from './toast.js';
 
-// ქვესათაური: პირველი ჟანრი + ხანგრძლივობა
 export const genreLine = (m) => [m.genres && m.genres[0] && m.genres[0].name, `${m.runtimeMinutes} min`].filter(Boolean).join(' · ');
 
-// ასაკობრივი შეზღუდვის ნიშნული (G / PG / 12+ / 16+ / 18+); hover-ზე ჩანს განმარტება
 export function ageBadge(movie, extra = '') {
   const r = movie.ageRating;
   if (!r) return null;
   return h('span', { class: `badge badge-red ${extra}`.trim(), title: r.description || '' }, r.code);
 }
 
-/** დიდი "ახლა ეკრანებზე" ბარათი (დიზაინი: Card_big). */
+/** Large Now Playing card (design: Card_big). */
 export function bigCard(movie) {
   const href = `/movies/${movie.slug}`;
   return h('article', { class: 'card-big' },
@@ -28,10 +26,9 @@ export function bigCard(movie) {
       h('a', { class: 'btn btn-red btn-sm', href }, 'Buy Ticket')));
 }
 
-/** "შემატყობინე" ღილაკი: სტუმარს ჯერ შესვლას სთხოვს, შემდეგ ხდება გამოწერა. */
+/** Notify-me button: guests are asked to log in first, then the subscription goes through. */
 export function notifyButton(movie) {
   const btn = h('button', { type: 'button', class: 'btn btn-outline' }, icon('bell', 14), h('span', null, 'Notify Me'));
-  // busy იცავს განმეორებითი დაწკაპუნებისგან - მოთხოვნა ერთხელ გაიგზავნება
   let busy = false;
   btn.addEventListener('click', () => requireAuth(async () => {
     if (busy) return;
@@ -49,7 +46,7 @@ export function notifyButton(movie) {
   return btn;
 }
 
-/** "მალე კინოში" ბარათი (დიზაინი: Card_medium). განზრახ არ არის ბმული - სეანსები არ აქვს, ადგილების არჩევაზე არ გადადის. */
+/** Coming Soon card (design: Card_medium). Deliberately not a link into seat selection. */
 export function comingSoonCard(movie) {
   return h('article', { class: 'card-medium' },
     h('div', { class: 'card-medium-poster' }, img(movie.posterUrl, `${movie.title} poster`, '')),
@@ -62,7 +59,7 @@ export function comingSoonCard(movie) {
       notifyButton(movie)));
 }
 
-/** კომპაქტური "ბოლოს ნანახი" ბარათი. */
+/** Compact "recently viewed" card. */
 export function recentCard(movie) {
   return h('a', { class: 'card-medium card-recent', href: `/movies/${movie.slug}` },
     h('div', { class: 'card-medium-poster' }, img(movie.posterUrl || movie.backdropUrl, `${movie.title} poster`, '')),
@@ -73,18 +70,16 @@ export function recentCard(movie) {
         ageBadge(movie))));
 }
 
-// ჩატვირთვის სკელეტონები (ცარიელი ეკრანისა და სპინერის ნაცვლად)
 export function bigCardSkeleton() { return h('div', { class: 'card-big skeleton', 'aria-hidden': 'true' }); }
 export function mediumCardSkeleton() { return h('div', { class: 'card-medium skeleton', 'aria-hidden': 'true' }); }
 
-/** შეცდომის ბლოკი "ხელახლა ცდის" ღილაკით (გამოიყენება ყველგან, სადაც მოთხოვნა ჩავარდება). */
+/** Error block with a Retry button (used wherever a request fails). */
 export function errorState(message, onRetry, title = 'Something went wrong') {
   return h('div', { class: 'state is-error', role: 'alert' },
     h('span', { class: 'ico' }, icon('alert', 22)), h('h3', null, title), h('p', null, message),
     onRetry && h('button', { type: 'button', class: 'btn btn-red', onclick: onRetry }, 'Try again'));
 }
 
-// ცარიელი სტატუსი: განმარტება და, სადაც გონივრულია, გამოსავლის ღილაკი
 export function emptyState({ title, message, actionLabel, onAction, href, iconName = 'film' }) {
   return h('div', { class: 'state' },
     h('span', { class: 'ico' }, icon(iconName, 22)), h('h3', null, title), message && h('p', null, message),

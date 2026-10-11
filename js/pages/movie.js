@@ -7,19 +7,16 @@ import { startBooking } from '../components/session-card.js';
 import { ageBadge, errorState, notifyButton } from '../components/cards.js';
 import { navigate } from '../router.js';
 
-// ფილმის დეტალური გვერდი: Hero ინფორმაციით, თარიღის არჩევა, სეანსები დარბაზების მიხედვით და Details პანელი
 export function mount(root, ctx) {
   const slug = ctx.params.slug;
   let movie = null;
   let date = null;
   let controller = null;
-  // სეანსების ხელახლა დახატვა (ავტორიზაციის ცვლილებისას ასაკობრივი შეზღუდვა უნდა განახლდეს)
   let renderSessions = () => {};
 
   const view = h('div', { class: 'movie-page' });
   root.append(view);
 
-  // ფილმის ჩატვირთვა slug-ით; 404-ზე "ფილმი ვერ მოიძებნა", სხვა შეცდომაზე - retry. ჩატვირთულ ფილმს ვიმახსოვრებთ "ბოლოს ნანახებში"
   async function load() {
     view.replaceChildren(h('div', { class: 'movie-hero skeleton', style: { borderRadius: 0 } }), h('div', { class: 'movie-body' }, h('div', { class: 'skeleton', style: { height: '300px' } })));
     try { movie = await api.movie(slug); }
@@ -34,10 +31,8 @@ export function mount(root, ctx) {
     build();
   }
 
-  // გვერდის აგება ჩატვირთული მონაცემით
   function build() {
     const dates = nextDays(7);
-    // თარიღები, რომლებზეც სეანსები არსებობს; დანარჩენი გათიშულია. საწყისი თარიღი: URL-ის ?date, ან პირველი ხელმისაწვდომი დღე
     const available = new Set(movie.availableDates || []);
     date = (ctx.query.get('date') && dates.find((d) => d.ymd === ctx.query.get('date')) && ctx.query.get('date')) || (dates.find((d) => available.has(d.ymd)) || dates[0]).ymd;
 
@@ -60,7 +55,6 @@ export function mount(root, ctx) {
       h('button', { type: 'button', class: `ms-chip${d.ymd === date ? ' is-selected' : ''}`, dataset: { ymd: d.ymd }, disabled: !movie.isComingSoon && !available.has(d.ymd) || null, 'aria-pressed': String(d.ymd === date),
         onclick: () => pick(d.ymd) }, h('span', null, d.dow), h('b', null, d.day))));
 
-    // თარიღის არჩევა: ვანახლებთ URL-ს (replace) და სეანსებს ვტვირთავთ
     function pick(ymd) {
       date = ymd;
       chips.querySelectorAll('.ms-chip').forEach((c) => { const on = c.dataset.ymd === ymd; c.classList.toggle('is-selected', on); c.setAttribute('aria-pressed', String(on)); });
@@ -69,7 +63,6 @@ export function mount(root, ctx) {
     }
 
     let groups = null;
-    // არჩეული თარიღის სეანსები დარბაზების მიხედვით (წინა მოთხოვნა უქმდება)
     async function loadSessions() {
       if (controller) controller.abort();
       controller = new AbortController();
@@ -84,7 +77,6 @@ export function mount(root, ctx) {
       }
     }
 
-    // სეანსების დახატვა: ასაკობრივი შეზღუდვის შეტყობინება, ცარიელი სტატუსი თარიღზე სეანსების არქონისას, დაჯგუფება დარბაზის (hall) მიხედვით
     renderSessions = () => {
       const blocked = isAgeBlocked(movie);
       note.replaceChildren(blocked ? h('div', { class: 'form-notice', role: 'alert' }, icon('alert', 16), h('span', null, ageBlockMessage(movie))) : '');
@@ -103,7 +95,6 @@ export function mount(root, ctx) {
       }));
     };
 
-    // სეანსის "ბილეთი": დრო, ენა, ფორმატი, ფასი, დარჩენილი ადგილები; გათიშულია გაყიდულ ან ასაკით შეზღუდულ სეანსზე
     function ticket(s) {
       const disabled = s.isSoldOut || isAgeBlocked(movie);
       return h('button', { type: 'button', class: 'ticket', disabled: disabled || null, title: isAgeBlocked(movie) ? ageBlockMessage(movie) : s.isSoldOut ? 'Sold out' : 'Select seats',
@@ -112,7 +103,6 @@ export function mount(root, ctx) {
         h('span', { class: 'ticket-stub' }, h('b', null, price(s.price)), h('small', null, icon('ticket', 11), s.isSoldOut ? 'Sold out' : `${s.seatsLeft} left`)));
     }
 
-    // Details პანელი: რეჟისორი, მსახიობები, ხანგრძლივობა, გამოშვების თარიღი, ჟანრი, ფორმატები, ფასი და ასაკობრივი შენიშვნა
     const detail = (label, value) => value ? h('div', { class: 'detail' }, h('dt', null, label), h('dd', null, value)) : null;
     const r = movie.ageRating;
     const details = h('aside', { class: 'details' }, h('h2', null, 'Details'),
@@ -123,7 +113,6 @@ export function mount(root, ctx) {
         !movie.isComingSoon && detail('From', price(movie.fromPrice))),
       r && r.minAge >= 12 && h('div', { class: 'rating-note' }, h('b', null, 'RATING NOTE'), h('p', null, h('strong', null, r.code), ' ', r.description)));
 
-    // მალე გამოსულ ფილმს სეანსები არ აქვს: ნაცვლად ვაჩვენებთ "Notify me"-ს
     const left = movie.isComingSoon
       ? h('section', { class: 'ms' }, h('h2', null, 'Sessions'), h('div', { class: 'state' }, h('span', { class: 'ico' }, icon('calendar', 22)), h('h3', null, 'Not in cinemas yet'),
           h('p', null, `Sessions open closer to the release on ${fullDate(movie.releaseDate)}. We can let you know.`), notifyButton(movie)))

@@ -1,18 +1,16 @@
 import { h, icon } from '../dom.js';
 
-// უნიკალური id-ების მთვლელი (label-ისა და input-ის დასაკავშირებლად)
 let uid = 0;
 
 /**
- * ველი ლეიბლით, რომლის ვალიდაციაც ხდება ფოკუსის დაკარგვისას (blur), შემდეგ კი - ყოველი შეყვანისას.
- * validate(value) აბრუნებს შეცდომის ტექსტს ან '' თუ ყველაფერი წესრიგშია.
- * ვალიდური და არაცარიელი -> მწვანე ჩარჩო და ✓; არავალიდური -> წითელი ჩარჩო და შეტყობინება.
+ * Labelled input with validation that runs on blur (and live once the field has been touched).
+ * validate(value) returns an error string, or '' when fine.
+ * Valid + non-empty -> green border and check mark; invalid -> red border and message.
  */
 export function createField({
   label, name, type = 'text', placeholder = '', validate = () => '', value = '', autocomplete,
   inputmode, maxlength, readOnly = false, hint, optional = false, format, onChange, trailing,
 }) {
-  // ყოველ ველს უნიკალური id აქვს, რომ label სწორ input-ს მიება და aria-describedby მუშაობდეს
   const id = `f-${name}-${++uid}`;
   const input = h('input', {
     id, name, type, placeholder, autocomplete, inputmode, maxlength, 'aria-describedby': `${id}-msg`,
@@ -26,16 +24,14 @@ export function createField({
     h('label', { class: 'field-label', for: id }, label, optional && h('span', { class: 'field-opt' }, ' (Optional)')),
     wrap, hint && h('p', { class: 'field-hint' }, hint), msg);
 
-  // touched: მომხმარებელი უკვე შეხებია ველს (მანამდე შეცდომას არ ვაჩვენებთ); serverError: API-ს მიერ დაბრუნებული შეცდომა კონკრეტულ ველზე
   let touched = false;
   let serverError = '';
 
-  // ველის გარე ინტერფეისი: value, validate(), setError() (სერვერის შეცდომისთვის), touch(), reset()
   const api = {
     el, input,
     get value() { return input.value; },
     setValue(v) { input.value = v; if (touched) api.validate(); },
-    /** ასრულებს ვალიდაციას და აჩვენებს შედეგს. აბრუნებს true-ს, თუ ველი ვალიდურია. */
+    /** Run validation and paint the result. Returns true when valid. */
     validate() {
       const err = serverError || validate(input.value);
       paint(err);
@@ -48,7 +44,6 @@ export function createField({
     focus() { input.focus(); },
   };
 
-  // აფერადებს ველს: შეცდომა -> წითელი, ვალიდური და არაცარიელი -> მწვანე; განახლებს aria-invalid-ს
   function paint(err, silent) {
     const hasValue = input.value.trim() !== '';
     el.classList.toggle('is-invalid', !!err);
@@ -57,9 +52,7 @@ export function createField({
     msg.textContent = err || '';
   }
 
-  // ფოკუსის დაკარგვისას ვამოწმებთ (დავალების მოთხოვნა: შეცდომა ჩანს on blur)
   input.addEventListener('blur', () => { if (readOnly) return; touched = true; serverError = ''; api.validate(); });
-  // შეყვანისას: ვაფორმატებთ (მაგ. ბარათის ნომერი), სერვერის ძველ შეცდომას ვშლით და თუ ველს უკვე შევეხეთ, ვალიდაციას ცოცხლად ვაახლებთ
   input.addEventListener('input', () => {
     if (format) { const f = format(input.value); if (f !== input.value) input.value = f; }
     if (serverError) serverError = '';
@@ -69,7 +62,7 @@ export function createField({
   return api;
 }
 
-/** ჩამოსაშლელი სია ველის იგივე სტილით. options: [{value, label}] */
+/** Select with the same chrome as a field. options: [{value,label}] */
 export function createSelect({ label, name, options, value = '', placeholder = 'Select…', optional = false, onChange }) {
   const id = `f-${name}-${++uid}`;
   const select = h('select', { id, name }, h('option', { value: '' }, placeholder),
@@ -82,16 +75,15 @@ export function createSelect({ label, name, options, value = '', placeholder = '
   return { el, select, get value() { return select.value; }, setValue(v) { select.value = String(v ?? ''); } };
 }
 
-// ---- საერთო ვალიდატორები ------------------------------------------------------
+// ---- shared validators -------------------------------------------------------
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-// ხშირად გამოყენებული ვალიდატორები (login/register მოდალებში)
 export const validators = {
   email: (v) => (!v.trim() ? 'Email is required' : !EMAIL_RE.test(v.trim()) ? 'Please enter a valid email address' : ''),
   password: (v) => (!v ? 'Password is required' : v.length < 3 ? 'Password must be at least 3 characters' : ''),
   username: (v) => (!v.trim() ? 'Username is required' : v.trim().length < 3 ? 'Username must be at least 3 characters' : ''),
 };
 
-/** 422-ის `errors` ობიექტს ({ველი: [შეტყობინება]}) ანაწილებს შესაბამის ველებზე. აბრუნებს იმ შეტყობინებებს, რომლებსაც ველი არ მოუძებნა. */
+/** Map a 422 `errors` object ({field: [msg]}) onto fields keyed by the same names. Returns unmapped messages. */
 export function applyServerErrors(errors, fields) {
   const leftovers = [];
   for (const [key, msgs] of Object.entries(errors || {})) {

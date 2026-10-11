@@ -1,7 +1,5 @@
 import { h } from '../dom.js';
 
-// მცირე შეტყობინება ეკრანის ქვედა ნაწილში. type: info | success | error.
-// თავისთავად ქრება, ან დაწკაპუნებით იხურება; ეკრანის წამკითხველისთვის aria-live კონტეინერშია.
 export function toast(message, { type = 'info', duration = 4500 } = {}) {
   const root = document.getElementById('toast-root');
   const el = h('div', { class: `toast toast-${type}`, role: type === 'error' ? 'alert' : 'status' }, message);

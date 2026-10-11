@@ -11,7 +11,7 @@ import { longDate, price, money, mmss } from '../format.js';
 import { errorState } from '../components/cards.js';
 import { validateMobile } from '../validation.js';
 
-/** შესასვლელი წერტილი სეანსის ბარათიდან. გახსნამდე ამოწმებს პირობებს: ავტორიზაცია, სრული პროფილი, ასაკი. */
+/** Entry point from session cards / tiles. Handles the gates (login, complete profile, age) before opening. */
 export function openBooking(session, movie) {
   return requireAuth(() => {
     const film = session.movie || movie;
@@ -26,16 +26,12 @@ export function openBooking(session, movie) {
   });
 }
 
-// ჯავშნის მოდალის მთავარი ლოგიკა. S - მოდალის მდგომარეობა: ეტაპი, დარბაზის რუკა, არჩეული ადგილები,
-// ჯავშანი (hold), ტაიმერი, შეტყობინება, დაკავებულობის დროშები.
 function run(session, movie) {
-  // მდგომარეობა ერთ ობიექტშია, რომ ყველა ქვეფუნქცია ერთსა და იმავე მონაცემს ხედავდეს
   const S = {
     step: 1, options: null, map: null, mapState: 'loading', mapError: '', selection: new Map(), soldCodes: new Set(),
     hold: null, timer: null, banner: null, notice: '', busy: false, completed: false, order: null, firstLoad: true,
   };
   const modal = openModal({ className: 'modal-booking', label: `Book ${movie.title}`, onClose: onClosed });
-  // ჯავშნის უკუთვლის ინდიკატორი (ჩანს მხოლოდ hold-ის შემდეგ)
   const timerChip = h('div', { class: 'hold-chip', hidden: true, role: 'timer' }, h('small', null, 'SEATS HELD'), h('b', null, '8:00'));
   const stepbar = h('div', { class: 'stepbar' });
   const body = h('div', { class: 'booking-body' });
@@ -44,21 +40,18 @@ function run(session, movie) {
     h('div', { class: 'booking-head' }, h('div', null, h('h2', { class: 'modal-title' }, movie.title.toUpperCase()), h('p', { class: 'modal-sub' }, when)), h('div', { class: 'booking-head-r' }, timerChip, closeButton(() => modal.close('x')))),
     stepbar, body);
 
-  // დამხმარე გამოთვლები: ადგილების ლიმიტი, ხელმისაწვდომი ბილეთის ტიპები (Child იმალება 16+/18+ ფილმზე),
-  // ბილეთის ფასი = სეანსის ფასი × ტიპის კოეფიციენტი (Adult 100%, Child 60%, Student 75%).
   const maxSeats = () => (S.options ? S.options.maxSeatsPerOrder : 3);
   const ticketTypes = () => S.options.ticketTypes.filter((t) => !(t.blockedFromRatingAge != null && movie.ageRating.minAge >= t.blockedFromRatingAge));
   const ratio = (slug) => (S.options.ticketTypes.find((t) => t.slug === slug) || { priceRatio: 1 }).priceRatio;
   const seatPrice = (sel) => money(session.price * ratio(sel.ticketType));
   const subtotal = () => money([...S.selection.values()].reduce((n, s) => n + seatPrice(s), 0));
 
-  // ---- სასიცოცხლო ციკლი ---------------------------------------------------------
+  // ---- lifecycle ---------------------------------------------------------------
   function onClosed() {
     stopTimer();
-    if (S.hold && !S.completed) api.releaseHold(S.hold.holdId).catch(() => {}); // ადგილებს მაშინვე ვათავისუფლებთ
-    if (S.completed) refreshRoute({ scroll: false }); // დარჩენილი ადგილების რაოდენობა ახლა მოძველებულია - გვერდს ვაახლებთ
+    if (S.hold && !S.completed) api.releaseHold(S.hold.holdId).catch(() => {}); // free the seats immediately
+    if (S.completed) refreshRoute({ scroll: false }); // seat counts / lists are now stale
   }
-  // 8-წუთიანი ტაიმერი: ითვლის სერვერის მიერ დაბრუნებულ expiresAt-მდე; ნულზე ჯავშანი მთავრდება
   function startTimer(hold) {
     stopTimer();
     const end = Date.parse(hold.expiresAt) || Date.now() + (hold.secondsRemaining || 0) * 1000;
@@ -73,7 +66,7 @@ function run(session, movie) {
   }
   function stopTimer() { clearInterval(S.timer); S.timer = null; timerChip.hidden = true; }
 
-  /** ჯავშანი აღარ არსებობს (ტაიმერი ამოიწურა ან სერვერმა თქვა): ვბრუნდებით 1-ელ ეტაპზე, ვტვირთავთ რუკას და ვუხსნით მიზეზს. */
+  /** Hold gone (timer ran out or server says so): reset to step 1, refetch the map, explain. */
   function expire(message) {
     stopTimer();
     S.hold = null; S.selection.clear(); S.step = 1; S.busy = false; modal.setDismissible(true);
@@ -81,14 +74,13 @@ function run(session, movie) {
     loadMap(); paint();
   }
 
-  // ვტვირთავთ დარბაზის რუკას და ფილტრის პარამეტრებს ერთად; რუკა მთლიანად API პასუხიდან იხატება
   async function loadMap() {
     S.mapState = 'loading';
     if (S.step === 1) paint();
     try {
       const [options, map] = await Promise.all([getOptions(), api.seats(session.id)]);
       S.options = options; S.map = map; S.mapState = 'ready';
-      if (S.firstLoad) { // ვაღდგენთ მომხმარებლის საკუთარ, ჯერ კიდევ აქტიურ ჯავშანს (isMine)
+      if (S.firstLoad) { // restore a returning user's own live hold
         S.firstLoad = false;
         map.sections.forEach((sec) => sec.rows.forEach((r) => r.seats.forEach((st) => { if (st.isMine) S.selection.set(st.id, { seat: st, section: sec.name, ticketType: 'adult' }); })));
       }
@@ -96,7 +88,7 @@ function run(session, movie) {
     if (S.step === 1) paint();
   }
 
-  /** 409: ზოგი ადგილი სხვამ დაასწრო. ვაცნობებთ, ვნიშნავთ გაყიდულად, არჩეულიდან ვიღებთ და დანარჩენს ვინარჩუნებთ. */
+  /** Seats that came back as contested: tell the user, mark sold, drop them, keep the rest. */
   function handleContested(err) {
     const lost = err.contested || [];
     lost.forEach((c) => S.soldCodes.add(c));
@@ -106,7 +98,7 @@ function run(session, movie) {
     loadMap();
   }
 
-  // ---- გამოსახვა ------------------------------------------------------------------
+  // ---- rendering -----------------------------------------------------------------
   function paint() {
     stepbar.replaceChildren(
       h('button', { type: 'button', class: `step${S.step === 1 ? ' is-active' : ''}`, disabled: S.step === 2 && S.busy || null, onclick: () => { if (S.step === 2 && !S.busy) { S.step = 1; S.banner = null; paint(); } } }, 'SEATS'),
@@ -115,21 +107,17 @@ function run(session, movie) {
     body.replaceChildren(S.step === 1 ? seatStep() : checkoutStep());
   }
 
-  // ზედა შეტყობინება (გაფრთხილება ან შეცდომა)
   function bannerEl() {
     return S.banner ? h('div', { class: `banner banner-${S.banner.type}`, role: 'alert' }, icon('alert', 16), h('span', null, S.banner.text)) : null;
   }
 
-  // ეტაპი 1: ადგილების არჩევა. მარცხნივ რუკა და ლეგენდა, მარჯვნივ არჩეული ადგილები, ბილეთის ტიპები და ჯამი
   function seatStep() {
     if (S.mapState === 'loading') return h('div', { class: 'seat-layout' }, h('div', { class: 'skeleton', style: { height: '420px' } }), h('div', { class: 'skeleton', style: { height: '420px' } }));
     if (S.mapState === 'error') return errorState(S.mapError, loadMap, "Couldn't load the hall map");
     const buttons = new Map();
     const panel = h('div', { class: 'seat-panel' });
-    // თუ ადგილი ადრე 409-ით დაიკარგა, რუკის ხელახლა ჩატვირთვამდეც გაყიდულად ვაჩვენებთ
     const stateOf = (st) => (S.soldCodes.has(st.code) && st.state === 'available' ? 'sold' : st.state);
 
-    // რუკის აგება: სექცია -> რიგები -> ადგილები. aisleAfter ამატებს ღიობს, unavailable - ცარიელ უჯრას
     const sections = S.map.sections.map((sec) => {
       const first = sec.rows[0] && sec.rows[0].label, last = sec.rows[sec.rows.length - 1] && sec.rows[sec.rows.length - 1].label;
       return h('div', { class: 'hall-section' },
@@ -150,7 +138,6 @@ function run(session, movie) {
           })))));
     });
 
-    // ადგილის არჩევა/მოხსნა; ლიმიტის გადაჭარბებისას ვაჩვენებთ შეტყობინებას
     function toggleSeat(st, secName) {
       S.notice = '';
       if (S.selection.has(st.id)) S.selection.delete(st.id);
@@ -161,7 +148,6 @@ function run(session, movie) {
       renderPanel();
     }
 
-    // წესების შემოწმება: აკრძალული ბილეთის ტიპი ფილმის ასაკობრივ კატეგორიაზე და ადგილების ლიმიტი. თითოეულ დარღვევაზე ვასახელებთ ადგილს და მიზეზს
     function problems() {
       const out = [];
       S.selection.forEach((sel) => {
@@ -173,7 +159,6 @@ function run(session, movie) {
       return out;
     }
 
-    // მარჯვენა პანელი: არჩეული ადგილები, ბილეთის ტიპის არჩევა, Subtotal და Next ღილაკი (გათიშულია, თუ არაფერია არჩეული ან წესი დარღვეულია)
     function renderPanel() {
       const issues = problems();
       const nextBtn = h('button', { type: 'button', class: 'btn btn-red btn-block btn-lg', disabled: S.selection.size === 0 || issues.length > 0 || S.busy || null, 'aria-busy': S.busy ? 'true' : 'false', onclick: goCheckout }, h('span', null, 'Next: Checkout'));
@@ -197,7 +182,6 @@ function run(session, movie) {
         h('div', { class: 'panel-bottom' }, h('div', { class: 'subtotal' }, h('span', null, 'SUBTOTAL'), h('b', null, price(subtotal()))), nextBtn));
     }
 
-    // Next: Checkout -> POST holds. წარმატებისას იწყება ტაიმერი; 409-ზე ვუშვებთ handleContested-ს; დაკავებისას ღილაკი გათიშულია
     async function goCheckout() {
       if (S.busy || !S.selection.size) return;
       S.busy = true; modal.setDismissible(false); renderPanel();
@@ -208,7 +192,7 @@ function run(session, movie) {
       } catch (e) {
         S.busy = false; modal.setDismissible(true);
         if (e.status === 409) { handleContested(e); return; }
-        if (e.status === 401) { renderPanel(); return; } // შესვლა გაუქმდა
+        if (e.status === 401) { renderPanel(); return; } // login was cancelled
         const first = e.errors && Object.values(e.errors)[0];
         S.banner = { type: 'error', text: (Array.isArray(first) ? first[0] : null) || e.message };
         paint();
@@ -225,7 +209,6 @@ function run(session, movie) {
         panel));
   }
 
-  // ეტაპი 2: მყიდველისა და ბარათის ფორმა + შეკვეთის შეჯამება (ფასები სერვერის ჯავშნის პასუხიდან)
   function checkoutStep() {
     const hold = S.hold, user = getUser();
     const fullName = createField({ label: 'Full name', name: 'fullName', value: user.fullName || '', autocomplete: 'name',
@@ -246,18 +229,15 @@ function run(session, movie) {
       } });
     const cvv = createField({ label: 'CVV', name: 'cvv', type: 'password', placeholder: '•••', inputmode: 'numeric', autocomplete: 'cc-csc', maxlength: 3,
       format: (v) => v.replace(/\D/g, '').slice(0, 3), validate: (v) => (!v ? 'CVV is required' : v.length !== 3 ? 'CVV must be 3 digits' : '') });
-    // ველები სახელებით, რომლებიც API-ს 422 პასუხის ველებს ემთხვევა - სერვერის შეცდომები ავტომატურად მიებმება სწორ ველს
     const fields = { fullName, email, mobileNumber: mobile, cardNumber: card, expiry, cvv };
     const formError = h('div', { class: 'form-error', role: 'alert', hidden: true });
     const pay = h('button', { type: 'submit', class: 'btn btn-red btn-lg', 'aria-busy': 'false' }, h('span', null, 'Pay & Complete Order'));
     const back = h('button', { type: 'button', class: 'btn btn-ghost btn-lg', onclick: () => { if (S.busy) return; S.step = 1; S.banner = null; paint(); } }, 'Back to seats');
-    // გადახდის დროს ღილაკები გათიშულია, მოდალის დახურვა დაბლოკილია
     const setBusy = (on) => { S.busy = on; pay.disabled = on; back.disabled = on; pay.classList.toggle('is-loading', on); pay.setAttribute('aria-busy', String(on)); modal.setDismissible(!on); };
 
-    // გადახდის გაგზავნა: ვალიდაცია -> POST /orders. 422 ველებზე, 409 ადგილებზე, დანარჩენი ფორმის შეცდომად
     const form = h('form', { class: 'checkout-form', novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
-      if (S.busy) return; // იცავს ორმაგი გაგზავნისგან
+      if (S.busy) return; // guards double submission
       formError.hidden = true;
       if (!Object.values(fields).map((f) => f.touch()).every(Boolean)) return;
       setBusy(true);
@@ -270,7 +250,7 @@ function run(session, movie) {
         if (err.status === 422 && err.errors) {
           const rest = applyServerErrors(err.errors, fields);
           if (rest.length) { formError.textContent = rest[0]; formError.hidden = false; }
-        } else if (err.status === 422) expire(err.message || 'Your hold time expired. Please re-select your seats.'); // ეს წესის შეცდომაა და არა ველის: ჯავშნის დრო გავიდა
+        } else if (err.status === 422) expire(err.message || 'Your hold time expired. Please re-select your seats.'); // rule, not field: hold ran out
         else if (err.status === 409) handleContested(err);
         else if (err.status !== 401) { formError.textContent = err.message; formError.hidden = false; }
       }
@@ -286,7 +266,6 @@ function run(session, movie) {
     return h('div', null, bannerEl(), h('div', { class: 'checkout-layout' }, form, summary));
   }
 
-  // დადასტურების ხედი: შეკვეთის კოდი, ბილეთები, ჯამი, ღილაკები My Tickets / Close
   function confirmation() {
     const o = S.order, s = o.session || session;
     return h('div', { class: 'confirm' },

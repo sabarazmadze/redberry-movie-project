@@ -7,14 +7,12 @@ import { ageBadge, bigCard, bigCardSkeleton, comingSoonCard, mediumCardSkeleton,
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// მთავარი გვერდი: Hero (4 გამორჩეული ფილმი), ბოლოს ნანახი, Now Playing, Coming Soon. თითოეული ნაწილი ცალ-ცალკე იტვირთება თავისი სკელეტონით, შეცდომით და retry-ით
 export function mount(root) {
   const hero = h('section', { class: 'hero', 'aria-label': 'Featured films' });
   const content = h('div', { class: 'home-sections' });
   root.append(hero, content);
 
   let destroyHero = () => {};
-  // Hero-ს ჩატვირთვა: სკელეტონი -> სლაიდები; ცარიელი სიის ან შეცდომის შემთხვევაში შესაბამისი სტატუსი
   const loadHero = async () => {
     destroyHero();
     hero.replaceChildren(h('div', { class: 'hero-skeleton skeleton' }));
@@ -30,7 +28,7 @@ export function mount(root) {
     }
   };
 
-  // ბოლოს ნანახი ფილმები (ლოკალურია, ამიტომ მოთხოვნა არ სჭირდება)
+  // recently viewed (local, so it never needs a request)
   const recent = getRecent();
   if (recent.length) {
     content.append(h('section', { class: 'section', 'aria-labelledby': 'recent-h' },
@@ -50,7 +48,6 @@ export function mount(root) {
   content.append(h('section', { class: 'section', 'aria-labelledby': 'soon-h' },
     h('div', { class: 'section-head' }, h('h2', { id: 'soon-h' }, 'COMING SOON...'), h('div', { class: 'section-tools' }, soonRow.arrows, h('a', { class: 'see-all', href: '/sessions' }, 'See all'))), soonRow.el));
 
-  // Now Playing-ის ჩატვირთვა
   const loadNow = async () => {
     nowBody.replaceChildren(...Array.from({ length: 6 }, bigCardSkeleton));
     try {
@@ -60,7 +57,6 @@ export function mount(root) {
     } catch (e) { nowBody.replaceChildren(errorState(e.message, loadNow, "Couldn't load films")); }
     nowRow.refresh();
   };
-  // Coming Soon-ის ჩატვირთვა
   const loadSoon = async () => {
     soonBody.replaceChildren(...Array.from({ length: 4 }, mediumCardSkeleton));
     try {
@@ -75,12 +71,10 @@ export function mount(root) {
   return { destroy: () => destroyHero() };
 }
 
-// Hero კარუსელი: სლაიდები, პროგრესის ზოლები, ისრები. reduced-motion-ის დროს ავტომატური გადართვა გამორთულია
 function buildHero(container, films) {
   let index = 0;
   const auto = !reducedMotion();
 
-  // თითო სლაიდი: ფონი, ბეჯი, სათაური, მეტა (ასაკი, ხანგრძლივობა, ფორმატები), აღწერა, ღილაკები
   const slides = films.map((m, i) => h('div', { class: 'hero-slide', 'aria-hidden': i === 0 ? 'false' : 'true', 'aria-roledescription': 'slide' },
     img(m.backdropUrl || m.posterUrl, '', 'hero-bg'),
     h('div', { class: 'hero-copy' },
@@ -95,7 +89,6 @@ function buildHero(container, films) {
         h('a', { class: 'btn btn-red', href: `/movies/${m.slug}` }, icon('ticket', 16), 'Buy tickets'),
         h('a', { class: 'btn btn-ghost', href: '/sessions' }, 'All sessions')))));
 
-  // ზოლები სლაიდებზე პირდაპირ გადასასვლელად + წინა/შემდეგი ისრები
   const bars = films.map((m, i) => h('button', { type: 'button', class: 'hero-bar', 'aria-label': `Show ${m.title}`, onclick: () => go(i) }, h('span', { class: 'fill' })));
   const prev = h('button', { type: 'button', class: 'round-btn round-lg', 'aria-label': 'Previous film', onclick: () => go(index - 1) }, icon('left', 22));
   const next = h('button', { type: 'button', class: 'round-btn round-lg', 'aria-label': 'Next film', onclick: () => go(index + 1) }, icon('right', 22));
@@ -103,22 +96,20 @@ function buildHero(container, films) {
   container.replaceChildren(...slides, controls);
   container.classList.toggle('is-static', !auto);
 
-  // აქტიური სლაიდის და ზოლების მდგომარეობის განახლება (არააქტიური სლაიდის ბმულები კლავიატურით მიუწვდომელია)
   function paint() {
     slides.forEach((s, i) => { s.classList.toggle('is-active', i === index); s.setAttribute('aria-hidden', String(i !== index)); s.querySelectorAll('a').forEach((a) => { a.tabIndex = i === index ? 0 : -1; }); });
     bars.forEach((b, i) => {
       b.classList.toggle('is-active', i === index);
       b.classList.toggle('is-done', i < index);
-      // აქტიურ ზოლზე ავსების ანიმაციას თავიდან ვუშვებთ
+      // restart the fill animation on the active bar
       const fill = b.firstChild;
       fill.style.animation = 'none'; void fill.offsetWidth; fill.style.animation = '';
     });
   }
-  // გადასვლა სლაიდზე (ციკლურად: ბოლოს შემდეგ პირველი)
   function go(i) { index = (i + films.length) % films.length; paint(); }
 
-  // პროგრესის ზოლის CSS ანიმაცია თავად არის საათი: როცა მთავრდება, შემდეგ სლაიდზე გადავდივართ. Hero-ზე hover/ფოკუსი
-  // ანიმაციას აჩერებს (იხ. CSS), ამიტომ დრო და ვიზუალი ვერასდროს დაშორდება ერთმანეთს.
+  // The progress bar's CSS animation is the clock: when it ends, advance. Hovering/focusing the hero pauses
+  // the animation (see CSS), so the timing and the visual can never drift apart.
   if (auto) bars.forEach((b, i) => b.firstChild.addEventListener('animationend', () => { if (i === index) go(index + 1); }));
 
   paint();

@@ -1,13 +1,11 @@
 import { h, icon } from '../dom.js';
 
-/** ჰორიზონტალური გადახვევადი რიგი: მოჭრილ კიდეზე გაბუნდოვნება და წინა/შემდეგი ისრები. */
+/** Horizontal scroller with a fade on the clipped edge and prev / next arrows. */
 export function scroller(row) {
   const wrap = h('div', { class: 'scroller fade-end' }, row);
-  // ერთი დაწკაპუნებით გადახვევის მანძილი
   const step = () => Math.max(300, wrap.clientWidth * 0.8);
   const prev = h('button', { type: 'button', class: 'round-btn', 'aria-label': 'Scroll left', onclick: () => wrap.scrollBy({ left: -step(), behavior: 'smooth' }) }, icon('left', 18));
   const next = h('button', { type: 'button', class: 'round-btn', 'aria-label': 'Scroll right', onclick: () => wrap.scrollBy({ left: step(), behavior: 'smooth' }) }, icon('right', 18));
-  // ანახლებს გაბუნდოვნებებსა და ისრების მდგომარეობას გადახვევის პოზიციის მიხედვით; ისრები იმალება, თუ გადასახვევი არაფერია
   const refresh = () => {
     const max = wrap.scrollWidth - wrap.clientWidth;
     wrap.classList.toggle('fade-end', wrap.scrollLeft < max - 4);
