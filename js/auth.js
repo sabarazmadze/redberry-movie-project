@@ -1,44 +1,36 @@
-// სესიის მდგომარეობა: ავტორიზებული მომხმარებელი ინახება აქ, დანარჩენი ნაწილები მასზე გამოიწერებიან (subscribe).
+// Session state: the signed-in user lives here; everything else subscribes.
 import { api, setToken, getToken } from './api.js';
 
-// მიმდინარე მომხმარებელი (null = სტუმარი)
 let user = null;
-// ცვლილებებზე გამოწერილი ფუნქციები (navbar, გვერდები)
 const subscribers = new Set();
 
-// მარტივი getter-ები
 export const getUser = () => user;
 export const isAuthed = () => !!user;
-// ამატებს მსმენელს; აბრუნებს გამოწერის გაუქმების ფუნქციას
 export function subscribe(fn) { subscribers.add(fn); return () => subscribers.delete(fn); }
-// ცვლის მომხმარებელს და ატყობინებს ყველა გამომწერს
 export function setUser(next) { user = next; subscribers.forEach((fn) => fn(user)); }
 
-/** სესიის აღდგენა გვერდის ჩატვირთვისას. 401 ნიშნავს, რომ შენახული ტოკენი ვადაგასულია: ვშლით და სტუმრად ვაგრძელებთ. */
+/** Restore the session on boot. A 401 means the stored token is stale, so drop it and carry on as a guest. */
 export async function initAuth() {
   if (!getToken()) return;
   try { setUser(await api.me()); }
   catch (e) { if (e.status === 401) setToken(null); }
 }
 
-// login/register-ის წარმატების შემდეგ: ვინახავთ ტოკენს და მომხმარებელს
 async function finish(result) { setToken(result.token); setUser(result.user); return result.user; }
 export const login = async (email, password) => finish(await api.login(email, password));
 export const register = async (form) => finish(await api.register(form));
 
-// გასვლა: სერვერს ვატყობინებთ და ლოკალურ სესიას ვასუფთავებთ
 export async function logout() {
-  try { await api.logout(); } catch { /* სერვერის პასუხის მიუხედავად ლოკალურად მაინც ვასუფთავებთ */ }
+  try { await api.logout(); } catch { /* clear locally regardless of the response */ }
   setToken(null);
   setUser(null);
 }
 
-/** იძახება, როცა დაცულმა მოთხოვნამ 401 დააბრუნა: მკვდარ ტოკენს ვშლით და ინტერფეისი სტუმრის რეჟიმზე გადადის. */
+/** Called when a protected request 401s: forget the dead token so the UI flips to the guest state. */
 export function expireSession() { setToken(null); setUser(null); }
 
-/** true, თუ ავტორიზებული მომხმარებელი ფილმის ასაკობრივ შეზღუდვას ვერ აკმაყოფილებს (ასაკი პროფილის დაბადების თარიღიდან). */
+/** True when the signed-in user is too young for this movie. */
 export function isAgeBlocked(movie) {
   return !!(user && user.age != null && movie && movie.ageRating && user.age < movie.ageRating.minAge);
 }
-// ასაკობრივი შეზღუდვის შეტყობინება (ტექსტი დავალებაში მოცემულია)
 export const ageBlockMessage = (movie) => `This film is rated ${movie.ageRating.code}. You cannot buy tickets for it with this account.`;

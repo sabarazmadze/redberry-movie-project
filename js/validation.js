@@ -1,4 +1,4 @@
-// საერთო ვალიდატორები, რომელთა ტექსტიც ზუსტად დავალებიდანაა აღებული.
+// Shared validators whose wording comes straight from the brief.
 export function validateMobile(raw) {
   const v = String(raw).replace(/\s/g, '');
   if (!v) return 'Mobile number is required';
